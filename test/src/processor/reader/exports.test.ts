@@ -1,0 +1,236 @@
+import * as chai from 'chai';
+import * as sinon from 'sinon';
+import * as sinonChai from 'sinon-chai';
+
+import { getExports } from '../../../../src/processor/reader/exports';
+
+chai.use(sinonChai);
+const expect = chai.expect;
+
+describe('reader processor - module.exports', () => {
+    const sandbox = sinon.createSandbox();
+
+    afterEach(() => {
+        sandbox.restore();
+    });
+
+    describe('export full assignment', () => {
+        it('should parse inline module.exports with Object.assign()', () => {
+            const fileContent =
+                '\n\n\nObject.assign(module.exports, {myFunction})\n\n\n';
+
+            const requirements = getExports(fileContent);
+
+            expect(requirements).to.deep.equal({
+                global: {
+                    properties: ['myFunction'],
+                    raw: 'Object.assign(module.exports, {myFunction})\n',
+                },
+                inline: [],
+            });
+        });
+
+        it('should parse inline module.exports with a function call', () => {
+            const fileContent =
+                '\n\n\nObject.assign(module.exports, {myFunction})\n\n\n';
+
+            const requirements = getExports(fileContent);
+
+            expect(requirements).to.deep.equal({
+                global: {
+                    properties: ['myFunction'],
+                    raw: 'Object.assign(module.exports, {myFunction})\n',
+                },
+                inline: [],
+            });
+        });
+
+        it('should parse full module.export = { ... } with direct exports', () => {
+            const fileContent = `
+const { insertLearningNeed } = require("../lib");
+
+module.exports = {
+    myFunction,
+    SomeClass,
+};
+
+async function myFunction(req) {
+    return {
+        someCode: "value",
+    });
+}
+
+class SomeClass = {};
+
+`;
+
+            const requirements = getExports(fileContent);
+
+            expect(requirements).to.deep.equal({
+                global: {
+                    properties: ['myFunction', 'SomeClass'],
+                    raw:
+                        'module.exports = {\n    myFunction,\n    SomeClass,\n};\n',
+                },
+                inline: [],
+            });
+        });
+
+        it('should parse full module.export = variable', () => {
+            const fileContent = `
+class MyError extends Error {}
+
+module.exports = MyError;
+`;
+
+            const requirements = getExports(fileContent);
+
+            expect(requirements).to.deep.equal({
+                global: {
+                    assignment: 'MyError',
+                    raw: 'module.exports = MyError;\n',
+                },
+                inline: [],
+            });
+        });
+
+        it('should parse full module.export with Object.assign()', () => {
+            const fileContent = `
+Object.assign(module.exports, {
+    myFunction,
+    SomeClass,
+});
+`;
+
+            const requirements = getExports(fileContent);
+
+            expect(requirements).to.deep.equal({
+                global: {
+                    properties: ['myFunction', 'SomeClass'],
+                    raw:
+                        'Object.assign(module.exports, {\n    myFunction,\n    SomeClass,\n});\n',
+                },
+                inline: [],
+            });
+        });
+
+        it('should not take commented export', () => {
+            const fileContent = `
+// Object.assign(module.exports, { ...lib1, ...lib2 });
+// module.exports = { ...lib1, ...lib2 };
+`;
+
+            const requirements = getExports(fileContent);
+
+            expect(requirements).to.deep.equal({
+                global: {},
+                inline: [],
+            });
+        });
+
+        describe('non-supported exports', () => {
+            it('should avoid global module.exports having function declared inside', () => {
+                const loggerWarnSpy = sandbox.spy(console, 'warn');
+                const fileContent = `
+module.exports = {
+    myFunction: function(){
+        // This function should be moved at root scope
+        // We will let the developer handle it
+    },
+    SomeClass,
+};
+`;
+
+                const requirements = getExports(fileContent);
+
+                expect(requirements).to.deep.equal({
+                    global: {},
+                    inline: [],
+                });
+                expect(loggerWarnSpy).to.be.calledOnceWithExactly(
+                    `⚠ module.exports support with declaration inside is not supported
+module.exports = {
+    myFunction: function(){
+        // This function should be moved at root scope
+        // We will let the developer handle it
+    }`,
+                );
+            });
+
+            it('should avoid global module.exports having function declared inside', () => {
+                const loggerWarnSpy = sandbox.spy(console, 'warn');
+                const fileContent = `
+    module.exports = {
+        firebaseNative: buildFirebaseNative()
+    };
+`;
+
+                const requirements = getExports(fileContent);
+
+                expect(requirements).to.deep.equal({
+                    global: {},
+                    inline: [],
+                });
+                expect(loggerWarnSpy).to.be.calledOnceWithExactly(
+                    `⚠ module.exports support with declarations inside is not supported
+    module.exports = {
+        firebaseNative: buildFirebaseNative()
+    };
+`,
+                );
+            });
+        });
+    });
+
+    describe('export partial assignment', () => {
+        it('should export an exported variables', () => {
+            const fileContent = `// ...
+module.exports.someVariable = { total: 30,};
+console.log("Some use of " + module.exports.someVariable.total);`;
+
+            const requirements = getExports(fileContent);
+
+            expect(requirements).to.deep.equal({
+                global: {},
+                inline: [
+                    {
+                        raw: 'module.exports.someVariable = ',
+                        rawFullLine:
+                            'module.exports.someVariable = { total: 30,};',
+                        property: 'someVariable',
+                    },
+                ],
+            });
+        });
+
+        it('should export multiples exported variables', () => {
+            const fileContent = `
+// ...
+module.exports.someVariable = {
+    total: 30,
+};
+module.exports.CONSTANT="Hello";
+
+console.log("Some use of " + module.exports.someVariable.total);
+`;
+
+            const requirements = getExports(fileContent);
+
+            expect(requirements).to.deep.equal({
+                global: {},
+                inline: [
+                    {
+                        raw: 'module.exports.someVariable = ',
+                        rawFullLine: 'module.exports.someVariable = {',
+                        property: 'someVariable',
+                    },
+                    {
+                        raw: 'module.exports.CONSTANT=',
+                        rawFullLine: 'module.exports.CONSTANT="Hello";',
+                        property: 'CONSTANT',
+                    },
+                ],
+            });
+        });
+    });
+});
