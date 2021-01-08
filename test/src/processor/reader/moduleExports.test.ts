@@ -114,7 +114,7 @@ Object.assign(module.exports, {
             });
         });
 
-        it('should not take commented export', () => {
+        it('should not take experimental export and warn', () => {
             const fileContent = `
 // Object.assign(module.exports, { ...lib1, ...lib2 });
 // module.exports = { ...lib1, ...lib2 };
@@ -225,6 +225,34 @@ Object.assign(module.exports, {
         });
 
         describe('non-supported exports', () => {
+            it('should not take advanced exports (experimental)', () => {
+                const loggerWarnSpy = sandbox.spy(console, 'warn');
+                const fileContent = `
+Object.assign(module.exports, {
+    udemyExternalFields: [
+        "categories",
+        "description",
+    ]
+});
+`;
+
+                const requirements = getExports(fileContent);
+
+                expect(requirements).to.deep.equal({
+                    global: {},
+                    inline: [],
+                });
+                expect(loggerWarnSpy).to.be.calledOnceWithExactly(
+                    `⚠ module.exports is too complex (try "experimental" mode)
+
+    udemyExternalFields: [
+        "categories",
+        "description",
+    ]
+`,
+                );
+            });
+
             it('should avoid global module.exports having function declared inside', () => {
                 const loggerWarnSpy = sandbox.spy(console, 'warn');
                 const fileContent = `

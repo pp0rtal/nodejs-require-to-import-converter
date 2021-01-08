@@ -77,6 +77,14 @@ export function getGlobalExports(content: string): GlobalExportedContent {
         return exportedContent;
     }
 
+    const isExperimentalExport = /[{}()[\]]/.test(innerRaw);
+    if (isExperimentalExport) {
+        console.warn(
+            `⚠ module.exports is too complex (try "experimental" mode)\n${innerRaw}`,
+        );
+        return exportedContent;
+    }
+
     const exportedAttributes = parseInnerExportedMethods(innerRaw);
     exportedContent.raw = rawOuterExport;
     exportedContent.properties = exportedAttributes;
