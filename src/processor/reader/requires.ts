@@ -9,6 +9,7 @@ export type RequireInfo = {
         key: string;
         alias?: string;
     }>;
+    indent?: string;
 };
 
 /**
@@ -18,23 +19,20 @@ export type RequireInfo = {
  */
 export function getRequires(content: string): RequireInfo[] {
     const requirements: Array<RequireInfo> = [];
-    const requireCallLineRegex = /^.*[=]\s*require\s*\([^)]+\).*$/;
+    const requireCallLineRegex = /^\n?(([^;=]*[=])?\s*require\s*\([^)]+\)[^\n]*)$/gm;
 
-    return content
-        .split('\n')
-        .reduce((requirements, rawLine) => {
-            const spotted = requireCallLineRegex.exec(rawLine);
-            if (spotted === null) {
-                return requirements;
-            }
-
-            const parsedRequirement = parseRequirementLine(spotted[0]);
+    let parseRequire;
+    do {
+        parseRequire = requireCallLineRegex.exec(content);
+        if (parseRequire !== null) {
+            const parsedRequirement = parseRequirementLine(parseRequire[1]);
             if (parsedRequirement !== null) {
                 requirements.push(parsedRequirement);
             }
-            return requirements;
-        }, requirements)
-        .filter((requirement) => requirement !== null);
+        }
+    } while (parseRequire !== null);
+
+    return requirements.filter((requirement) => requirement !== null);
 }
 
 /**
@@ -43,7 +41,7 @@ export function getRequires(content: string): RequireInfo[] {
  * @return null or parsed requirement
  */
 function parseRequirementLine(rawLine: string): RequireInfo | null {
-    const requireRegex = /^\s*(const|let|var)?\s*([^=]+)\s*=\s*require\s*\(\s*(['"])([^'"]+)['"]\s*\)(?:\.([^\s;]+))?\s*;?/;
+    const requireRegex = /^(?:\s*(const|let|var)?\s*([^=]+)\s*=)?\s*require\s*\(\s*(['"])([^'"]+)['"]\s*\)(?:\.([^\s;]+))?\s*;?/g;
     const parse = requireRegex.exec(rawLine);
 
     // Can happen for various syntactical reasons
@@ -60,6 +58,16 @@ function parseRequirementLine(rawLine: string): RequireInfo | null {
         libPathRaw,
         additionalPath,
     ] = parse;
+
+    if (!varType && raw.startsWith('require') && !additionalPath) {
+        return {
+            target: libPathRaw,
+            raw,
+            quoteType,
+            imports: [],
+        };
+    }
+
     let parsedAttributes = parseAttribute(attributesRaw);
     if (!parsedAttributes) {
         return null;
@@ -114,12 +122,19 @@ function parseRequirementLine(rawLine: string): RequireInfo | null {
         return !alias || alias === key ? { key } : { key, alias };
     });
 
-    return {
+    const output: RequireInfo = {
         target: libPathRaw,
         raw,
         quoteType,
         imports: parsedAttributes,
     };
+
+    const searchIndentRegex = /\n(\s+)/m.exec(parse[0]);
+    if (searchIndentRegex !== null) {
+        output.indent = searchIndentRegex[1];
+    }
+
+    return output;
 }
 
 /**
@@ -128,7 +143,7 @@ function parseRequirementLine(rawLine: string): RequireInfo | null {
  * @param input left operand of require
  */
 function parseAttribute(input: string): RequireInfo['imports'] | null {
-    input = input.trim();
+    input = input.trim().replace(/\n/g, '');
     const hasDestructuring =
         input[0] === '{' && input[input.length - 1] === '}';
     if (!hasDestructuring) {
@@ -147,8 +162,10 @@ function parseAttribute(input: string): RequireInfo['imports'] | null {
         );
         return null;
     }
+
     return innerDestructuringRaw
         .split(',')
+        .filter((str) => str.length)
         .map((str) => str.trim())
         .map((str) => {
             const [rawKey, rawAlias] = str.split(':');

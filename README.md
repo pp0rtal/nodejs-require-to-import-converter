@@ -37,6 +37,8 @@ node ./dist/main.js /path/to/your/project
 ### Watch changes and test
 Your project has to be on Git. Use your file editor to see if the script worked as expected.
 
+#### Package config
+
 Two steps are mandatory to use `import` in Nodejs:
 1. All `"type":"module"` to your `package.json`
 2. Run your node program with `node --es-module-specifier-resolution=node`
@@ -44,6 +46,15 @@ Two steps are mandatory to use `import` in Nodejs:
 Step 2 is required in order to not specify file extension in imports, which is more common to switch to Typscript.
 By not writing extension, you will be able to switch a file ext from `.js` to `.ts` and not update every imports.
 
+
+#### Eslint
+Add to you eslint config file
+```
+"parserOptions": {
+    "ecmaVersion": 2020,
+    "sourceType": "module"
+},
+```
 
 
 ## Capacities

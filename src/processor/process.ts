@@ -3,7 +3,7 @@ import * as fs from 'fs/promises';
 
 import { loadFilesContent } from '../utils/fs';
 import { getRequires } from './reader/requires';
-import { getExports } from './reader/exports';
+import { getExports } from './reader/moduleExports';
 import { rewriteImports } from './writer/imports';
 import { rewriteExports } from './writer/exports';
 

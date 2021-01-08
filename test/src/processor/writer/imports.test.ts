@@ -94,4 +94,25 @@ function a (){
 }
 `);
     });
+
+    it('should update multiline requirements', () => {
+        const fileContent = `
+const _ = require('lodash');
+const {
+    validateSession,
+    getToken,
+} = require("./authenticator");
+`;
+        const requirements = getRequires(fileContent);
+
+        const fileUpdate = rewriteImports(fileContent, requirements);
+
+        expect(fileUpdate).to.deep.equal(`
+import * as _ from 'lodash';
+import {
+    validateSession,
+    getToken,
+} from "./authenticator";
+`);
+    });
 });

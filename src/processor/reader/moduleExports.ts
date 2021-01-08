@@ -72,7 +72,7 @@ export function getGlobalExports(content: string): GlobalExportedContent {
 
     if (hasFunctionCall) {
         console.warn(
-            `⚠ module.exports support with declarations inside is not supported\n${rawOuterExport}`,
+            `⚠ module.exports support with calls inside is not supported\n${rawOuterExport}`,
         );
         return exportedContent;
     }

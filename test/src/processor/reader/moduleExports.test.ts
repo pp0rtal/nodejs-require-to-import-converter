@@ -2,7 +2,7 @@ import * as chai from 'chai';
 import * as sinon from 'sinon';
 import * as sinonChai from 'sinon-chai';
 
-import { getExports } from '../../../../src/processor/reader/exports';
+import { getExports } from '../../../../src/processor/reader/moduleExports';
 
 chai.use(sinonChai);
 const expect = chai.expect;
@@ -172,7 +172,7 @@ module.exports = {
                     inline: [],
                 });
                 expect(loggerWarnSpy).to.be.calledOnceWithExactly(
-                    `⚠ module.exports support with declarations inside is not supported
+                    `⚠ module.exports support with calls inside is not supported
     module.exports = {
         firebaseNative: buildFirebaseNative()
     };

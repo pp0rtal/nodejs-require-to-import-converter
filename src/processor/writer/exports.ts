@@ -29,13 +29,6 @@ function rewriteGlobalExport(
         return content;
     }
 
-    if (/=\s*require\s*\(/.test(content)) {
-        console.warn(
-            `⚠️cannot rewrite global export as some require() \n${globalExports.raw}`,
-        );
-        return content;
-    }
-
     if (globalExports.assignment) {
         content = replacePropertyDeclaration(content, globalExports.assignment);
     }

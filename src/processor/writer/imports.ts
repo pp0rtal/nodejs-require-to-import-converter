@@ -1,5 +1,5 @@
 import { RequireInfo } from '../reader/requires';
-import { IMPORT_QUOTE } from '../config';
+import { IMPORT_LAST_COMMA, IMPORT_QUOTE } from '../config';
 
 /**
  *
@@ -27,21 +27,31 @@ function generateImport(requirement: RequireInfo): string {
     const isGlobalImport =
         requirement.imports.length === 1 && requirement.imports[0].key === '*';
 
-    let importAssignment = requirement.imports
-        .map((importConfig) => {
-            if (importConfig.key === '*' && requirement.hasDefault) {
-                return `${importConfig.alias}`;
-            }
-            if (importConfig.alias) {
-                return `${importConfig.key} as ${importConfig.alias}`;
-            }
-            return `${importConfig.key}`;
-        })
-        .join(', ');
+    // format each param
+    const importAssignments = requirement.imports.map((importConfig) => {
+        if (importConfig.key === '*' && requirement.hasDefault) {
+            return `${importConfig.alias}`;
+        }
+        if (importConfig.alias) {
+            return `${importConfig.key} as ${importConfig.alias}`;
+        }
+        return `${importConfig.key}`;
+    });
 
-    if (!isGlobalImport) {
-        importAssignment = `{ ${importAssignment} }`;
+    // Surround imported params, multi or single line
+    let importFormattedAssignment:string;
+    if (requirement.indent) {
+        importFormattedAssignment = importAssignments.join(
+            `,\n${requirement.indent}`,
+        );
+        const lastComma = IMPORT_LAST_COMMA ? ',' : '';
+        importFormattedAssignment = `{\n${requirement.indent}${importFormattedAssignment}${lastComma}\n}`;
+    } else {
+        importFormattedAssignment = importAssignments.join(', ');
+        if (!isGlobalImport) {
+            importFormattedAssignment = `{ ${importFormattedAssignment} }`;
+        }
     }
 
-    return `import ${importAssignment} from ${quote}${requirement.target}${quote};`;
+    return `import ${importFormattedAssignment} from ${quote}${requirement.target}${quote};`;
 }

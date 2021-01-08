@@ -69,6 +69,21 @@ describe('reader processor - require()', () => {
     });
 
     describe('var/let/const basic support', () => {
+        it('should parse require without assignment', () => {
+            const fileContent = "require('source-map-support')";
+
+            const requirements = getRequires(fileContent);
+
+            expect(requirements).to.deep.equal([
+                {
+                    target: 'source-map-support',
+                    quoteType: "'",
+                    raw: "require('source-map-support')",
+                    imports: [],
+                },
+            ]);
+        });
+
         it('should parse basic global require in "const"', () => {
             const fileContent = `const _ = require('lodash');`;
 
@@ -296,7 +311,7 @@ describe('reader processor - require()', () => {
     });
 
     describe('Multiple lines', () => {
-        it('should parse multiple lines', () => {
+        it('should parse multiple imports', () => {
             const fileContent = `
 const _ = require('lodash');
 const sinon = require("sinon");
@@ -328,6 +343,48 @@ function a (){
                         {
                             key: '*',
                             alias: 'sinon',
+                        },
+                    ],
+                },
+            ]);
+        });
+
+        it('should parse multiline import', () => {
+            const fileContent = `
+const _ = require("lodash");
+
+const {
+    validateSession,
+    getToken,
+} = require("./authenticator");
+`;
+
+            const requirements = getRequires(fileContent);
+
+            expect(requirements).to.deep.equal([
+                {
+                    target: 'lodash',
+                    quoteType: '"',
+                    raw: 'const _ = require("lodash");',
+                    imports: [
+                        {
+                            key: '*',
+                            alias: '_',
+                        },
+                    ],
+                },
+                {
+                    target: './authenticator',
+                    quoteType: '"',
+                    raw:
+                        'const {\n    validateSession,\n    getToken,\n} = require("./authenticator");',
+                    indent: "    ",
+                    imports: [
+                        {
+                            key: 'validateSession',
+                        },
+                        {
+                            key: 'getToken',
                         },
                     ],
                 },
