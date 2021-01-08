@@ -73,6 +73,30 @@ export { a, b } from "./myLib3";
 `);
     });
 
+    it('should rewrite export assignments on multiple lines', () => {
+        const fileContent = `
+const {
+    someMethod, 
+    someConstant,
+    a,
+} = require("./myLib1");
+module.exports = { someMethod, someConstant, a};
+`;
+        const exports = getExports(fileContent);
+        const requirements = getRequires(fileContent);
+
+        let fileUpdate = rewriteImports(fileContent, requirements);
+        fileUpdate = rewriteExports(fileUpdate, exports);
+
+        expect(fileUpdate).to.deep.equal(`
+export {
+    someMethod,
+    someConstant,
+    a,
+} from "./myLib1";
+`);
+    });
+
     it('should rewrite export ellipsis of imported libs', () => {
         const fileContent = `
 const lib1 = require("./lib1");

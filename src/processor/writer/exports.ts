@@ -68,6 +68,12 @@ function replacePropertyDeclaration(
         assignment,
         isEllipsis,
     );
+
+    // Already exported with another key
+    if (rawPropertyImport === true) {
+        return content;
+    }
+
     const rawPropertyDeclaration = findPropertyDeclaration(content, assignment);
 
     if (rawPropertyDeclaration === null && rawPropertyImport === null) {
@@ -97,20 +103,33 @@ function replacePropertyDeclaration(
      * @param fileContent
      * @param property
      * @param isEllipsis
+     * @return true if already exported with other key
      */
     function findPropertyImport(
         fileContent: string,
         property: string,
         isEllipsis: boolean,
-    ): string | null {
+    ): string | null | true {
         const findImportRegex = new RegExp(
             isEllipsis
                 ? `^import \\* as ${escapeRegExp(property)} from .*$`
-                : `^import .*[\\s{,]${escapeRegExp(property)}[,\\s}].*from.*$`,
+                : `^import [\\s\\S]*?[\\s{,]${escapeRegExp(property)}[,\\s}][\\s\\S]*?from.*$`,
+            'm',
+        );
+
+        const findExportRegex = new RegExp(
+            isEllipsis
+                ? `^export \\* as ${escapeRegExp(property)} from .*$`
+                : `^export [\\s\\S]*[\\s{,]${escapeRegExp(property)}[,\\s}][\\s\\S]*from.*$`,
             'm',
         );
 
         const importDeclaration = findImportRegex.exec(fileContent);
+        const exportDeclaration = findExportRegex.exec(fileContent);
+        if(!findImportRegex && exportDeclaration){
+            return true;
+        }
+
         if (importDeclaration) {
             return importDeclaration[0];
         }
