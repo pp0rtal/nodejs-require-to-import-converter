@@ -128,6 +128,102 @@ Object.assign(module.exports, {
             });
         });
 
+        describe.skip('experimental direct exported assignments', () => {
+            it('should parse inline instructions', () => {
+                const fileContent = `
+Object.assign(module.exports, { identifiedAuthenticator: buildIdentifiedAuthenticator() });
+`;
+
+                const requirements = getExports(fileContent);
+
+                expect(requirements).to.deep.equal({
+                    global: {
+                        assignments: [
+                            {
+                                property: 'identifiedAuthenticator',
+                                rawValue: 'buildIdentifiedAuthenticator()',
+                            },
+                        ],
+                        raw:
+                            'Object.assign(module.exports, { identifiedAuthenticator: buildIdentifiedAuthenticator() });\n',
+                    },
+                    inline: [],
+                });
+            });
+
+            it('should parse hybrid inline instructions + keys', () => {
+                const fileContent = `
+Object.assign(module.exports, { 
+    identifiedAuthenticator: someConstructor(),
+    someConstant
+});
+`;
+
+                const requirements = getExports(fileContent);
+
+                expect(requirements).to.deep.equal({
+                    global: {
+                        assignments: [
+                            {
+                                property: 'identifiedAuthenticator',
+                                value: 'someConstructor()',
+                            },
+                        ],
+                        properties: ['someConstant'],
+                        raw:
+                            'Object.assign(module.exports, { identifiedAuthenticator: buildIdentifiedAuthenticator() });\n',
+                    },
+                    inline: [],
+                });
+            });
+
+            it('should parse various key declaration', () => {
+                const fileContent = `
+Object.assign(module.exports, { 
+    call: someConstructor(),
+    str: "hello",
+    number: 42,
+    inlineObject: { ok: "..." },
+    inlineArray: ["...", "..."],
+    someConstant
+});
+`;
+
+                const requirements = getExports(fileContent);
+
+                expect(requirements).to.deep.equal({
+                    global: {
+                        assignments: [
+                            {
+                                property: 'call',
+                                rawValue: 'someConstructor()',
+                            },
+                            {
+                                property: 'str',
+                                rawValue: '"hello"',
+                            },
+                            {
+                                property: 'number',
+                                rawValue: '42',
+                            },
+                            {
+                                property: 'inlineObject',
+                                rawValue: '{ ok: "..." }',
+                            },
+                            {
+                                property: 'inlineObject',
+                                rawValue: '["...", "..."]',
+                            },
+                        ],
+                        properties: ['someConstant'],
+                        raw:
+                            'Object.assign(module.exports, { identifiedAuthenticator: buildIdentifiedAuthenticator() });\n',
+                    },
+                    inline: [],
+                });
+            });
+        });
+
         describe('non-supported exports', () => {
             it('should avoid global module.exports having function declared inside', () => {
                 const loggerWarnSpy = sandbox.spy(console, 'warn');

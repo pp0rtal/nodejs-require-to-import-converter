@@ -27,6 +27,10 @@ function generateImport(requirement: RequireInfo): string {
     const isGlobalImport =
         requirement.imports.length === 1 && requirement.imports[0].key === '*';
 
+    if (!requirement.imports.length) {
+        return `import ${quote}${requirement.target}${quote};`;
+    }
+
     // format each param
     const importAssignments = requirement.imports.map((importConfig) => {
         if (importConfig.key === '*' && requirement.hasDefault) {
@@ -39,7 +43,7 @@ function generateImport(requirement: RequireInfo): string {
     });
 
     // Surround imported params, multi or single line
-    let importFormattedAssignment:string;
+    let importFormattedAssignment: string;
     if (requirement.indent) {
         importFormattedAssignment = importAssignments.join(
             `,\n${requirement.indent}`,

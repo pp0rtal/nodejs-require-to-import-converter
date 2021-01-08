@@ -24,7 +24,17 @@ describe('writer processor - imports', () => {
         expect(fileUpdate).to.deep.equal("//const _ = require('lodash');");
     });
 
-    it('should rewrite basic import', () => {
+    it('should rewrite direct import', () => {
+        const fileContent = `require('source-map-support')`;
+        const requirements = getRequires(fileContent);
+        console.log(requirements)
+
+        const fileUpdate = rewriteImports(fileContent, requirements);
+
+        expect(fileUpdate).to.deep.equal("import 'source-map-support';");
+    });
+
+    it('should rewrite import with direct assignment', () => {
         const fileContent = `const _ = require('lodash');`;
         const requirements = getRequires(fileContent);
 

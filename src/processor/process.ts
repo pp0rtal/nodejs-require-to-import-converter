@@ -18,8 +18,8 @@ export async function updateFiles(filePaths: string[]) {
     const fileContents = await loadFilesContent(filePaths);
 
     await Bluebird.each(filePaths, async (path) => {
-        const updatedContent = getUpdatedFile(path, fileContents[path]);
         updateStatus(path);
+        const updatedContent = getUpdatedFile(path, fileContents[path]);
         await fs.writeFile(path, updatedContent);
     });
 }

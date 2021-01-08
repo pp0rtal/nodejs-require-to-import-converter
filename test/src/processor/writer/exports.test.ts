@@ -3,7 +3,7 @@ import * as sinon from 'sinon';
 import * as sinonChai from 'sinon-chai';
 
 import { rewriteExports } from '../../../../src/processor/writer/exports';
-import { getExports } from '../../../../src/processor/reader/exports';
+import { getExports } from '../../../../src/processor/reader/moduleExports';
 import { getRequires } from '../../../../src/processor/reader/requires';
 import { rewriteImports } from '../../../../src/processor/writer/imports';
 

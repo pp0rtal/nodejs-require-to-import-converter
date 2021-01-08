@@ -36,13 +36,31 @@ describe('reader processor - require()', () => {
 
             expect(requirements).to.deep.equal([]);
             expect(loggerWarnSpy).to.be.calledOnceWithExactly(
-                '⚠️require has direct function call, you have to separate this\n' +
-                    'const router = require("express").Router();',
+                '⚠️require has direct function call, you have to separate instructions\n' +
+                'const router = require("express").Router();',
+            );
+        });
+
+        it('should avoid multiline function call imports and warn', () => {
+            const fileContent = `
+            require("fs").copyFileSync(
+                path.resolve(filesRoot),
+            );`;
+            const loggerWarnSpy = sandbox.spy(console, 'warn');
+
+            const requirements = getRequires(fileContent);
+
+            expect(requirements).to.deep.equal([]);
+            expect(loggerWarnSpy).to.be.calledOnceWithExactly(
+                '⚠️require has direct direct call, you have to separate instructions\n' +
+                '            require("fs").copyFileSync(',
             );
         });
 
         it('should avoid deep object destructuring and warn', () => {
-            const fileContent = `const createClock = require("sinon").clock.create;`;
+            const fileContent = `
+/* some useless comment */
+const createClock = require("sinon").clock.create;`;
             const loggerWarnSpy = sandbox.spy(console, 'warn');
 
             const requirements = getRequires(fileContent);
@@ -70,7 +88,7 @@ describe('reader processor - require()', () => {
 
     describe('var/let/const basic support', () => {
         it('should parse require without assignment', () => {
-            const fileContent = "require('source-map-support')";
+            const fileContent = " require('source-map-support')";
 
             const requirements = getRequires(fileContent);
 
@@ -78,7 +96,7 @@ describe('reader processor - require()', () => {
                 {
                     target: 'source-map-support',
                     quoteType: "'",
-                    raw: "require('source-map-support')",
+                    raw: " require('source-map-support')",
                     imports: [],
                 },
             ]);

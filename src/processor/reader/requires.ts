@@ -19,7 +19,7 @@ export type RequireInfo = {
  */
 export function getRequires(content: string): RequireInfo[] {
     const requirements: Array<RequireInfo> = [];
-    const requireCallLineRegex = /^\n?(([^;=]*[=])?\s*require\s*\([^)]+\)[^\n]*)$/gm;
+    const requireCallLineRegex = /^\n?(([^;=/*().]*[=])?\s*require\s*\([^)]+\)[^\n]*)$/gm;
 
     let parseRequire;
     do {
@@ -41,7 +41,7 @@ export function getRequires(content: string): RequireInfo[] {
  * @return null or parsed requirement
  */
 function parseRequirementLine(rawLine: string): RequireInfo | null {
-    const requireRegex = /^(?:\s*(const|let|var)?\s*([^=]+)\s*=)?\s*require\s*\(\s*(['"])([^'"]+)['"]\s*\)(?:\.([^\s;]+))?\s*;?/g;
+    const requireRegex = /^\s*(?:(const|let|var)?\s*([^=/]+)\s*=)?\s*require\s*\(\s*(['"])([^'"]+)['"]\s*\)(?:\.([^\s;]+))?\s*;?/g;
     const parse = requireRegex.exec(rawLine);
 
     // Can happen for various syntactical reasons
@@ -59,7 +59,14 @@ function parseRequirementLine(rawLine: string): RequireInfo | null {
         additionalPath,
     ] = parse;
 
-    if (!varType && raw.startsWith('require') && !additionalPath) {
+    if (!varType && /^\s*require/.test(raw)) {
+        if (additionalPath) {
+            console.warn(
+                `⚠️require has direct direct call, you have to separate instructions\n${raw}`,
+            );
+            return null;
+        }
+
         return {
             target: libPathRaw,
             raw,
@@ -87,7 +94,7 @@ function parseRequirementLine(rawLine: string): RequireInfo | null {
 
         if (hasDirectFunctionCall) {
             console.warn(
-                `⚠️require has direct function call, you have to separate this\n${raw}`,
+                `⚠️require has direct function call, you have to separate instructions\n${raw}`,
             );
             return null;
         }

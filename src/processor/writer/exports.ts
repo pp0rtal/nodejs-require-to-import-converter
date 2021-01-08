@@ -1,4 +1,4 @@
-import { ExportsInfo } from '../reader/exports';
+import { ExportsInfo } from '../reader/moduleExports';
 import { escapeRegExp } from 'tslint/lib/utils';
 
 /**
