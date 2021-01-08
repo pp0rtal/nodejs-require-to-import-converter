@@ -85,7 +85,6 @@ module.exports = { ...lib1, fn};
         let fileUpdate = rewriteImports(fileContent, requirements);
         fileUpdate = rewriteExports(fileUpdate, exports);
 
-        console.log(fileUpdate)
         expect(fileUpdate).to.deep.equal(`
 export * from "./lib1";
 export { fn } from './lib2';
@@ -98,7 +97,6 @@ function myMethod () {}
 module.exports = myMethod;
 `;
         const exports = getExports(fileContent);
-        console.log(exports);
 
         const fileUpdate = rewriteExports(fileContent, exports);
 
@@ -108,8 +106,17 @@ export function myMethod () {}
     });
 
     describe('inline exports', () => {
-        it('should rewrite basic exported number constant)', () => {
+        it('should rewrite basic exported number constant) with module.exports', () => {
             const fileContent = 'module.exports.some_variable = 56';
+            const exports = getExports(fileContent);
+
+            const fileUpdate = rewriteExports(fileContent, exports);
+
+            expect(fileUpdate).to.deep.equal('export const some_variable = 56');
+        });
+
+        it('should rewrite basic exported number constant) with exports', () => {
+            const fileContent = 'exports.some_variable = 56';
             const exports = getExports(fileContent);
 
             const fileUpdate = rewriteExports(fileContent, exports);
@@ -141,7 +148,7 @@ export const template = \`
         it('should rewrite exported object', () => {
             const fileContent = `
 module.exports.some_variable = [\n78];
-module.exports.CONSTANT = {
+exports.CONSTANT = {
    value: 56,
    second: 'a'
 }

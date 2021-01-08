@@ -334,6 +334,7 @@ module.exports.someVariable = {
     total: 30,
 };
 module.exports.CONSTANT="Hello";
+exports.OTHER_CONSTANT="test";
 
 console.log("Some use of " + module.exports.someVariable.total);
 `;
@@ -352,6 +353,11 @@ console.log("Some use of " + module.exports.someVariable.total);
                         raw: 'module.exports.CONSTANT=',
                         rawFullLine: 'module.exports.CONSTANT="Hello";',
                         property: 'CONSTANT',
+                    },
+                    {
+                        raw: 'exports.OTHER_CONSTANT=',
+                        rawFullLine: 'exports.OTHER_CONSTANT="test";',
+                        property: 'OTHER_CONSTANT',
                     },
                 ],
             });
