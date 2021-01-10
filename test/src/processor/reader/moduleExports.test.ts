@@ -23,7 +23,7 @@ describe('reader processor - module.exports', () => {
 
             expect(requirements).to.deep.equal({
                 global: {
-                    properties: ['myFunction'],
+                    exportedProperties: ['myFunction'],
                     raw: 'Object.assign(module.exports, {myFunction})\n',
                 },
                 inline: [],
@@ -38,7 +38,7 @@ describe('reader processor - module.exports', () => {
 
             expect(requirements).to.deep.equal({
                 global: {
-                    properties: ['myFunction'],
+                    exportedProperties: ['myFunction'],
                     raw: 'Object.assign(module.exports, {myFunction})\n',
                 },
                 inline: [],
@@ -60,7 +60,7 @@ async function myFunction(req) {
     });
 }
 
-class SomeClass = {};
+class SomeClass  = {};
 
 `;
 
@@ -68,7 +68,7 @@ class SomeClass = {};
 
             expect(requirements).to.deep.equal({
                 global: {
-                    properties: ['myFunction', 'SomeClass'],
+                    exportedProperties: ['myFunction', 'SomeClass'],
                     raw:
                         'module.exports = {\n    myFunction,\n    SomeClass,\n};\n',
                 },
@@ -87,7 +87,7 @@ module.exports = MyError;
 
             expect(requirements).to.deep.equal({
                 global: {
-                    assignment: 'MyError',
+                    directAssignment: 'MyError',
                     raw: 'module.exports = MyError;\n',
                 },
                 inline: [],
@@ -106,7 +106,7 @@ Object.assign(module.exports, {
 
             expect(requirements).to.deep.equal({
                 global: {
-                    properties: ['myFunction', 'SomeClass'],
+                    exportedProperties: ['myFunction', 'SomeClass'],
                     raw:
                         'Object.assign(module.exports, {\n    myFunction,\n    SomeClass,\n});\n',
                 },
@@ -128,22 +128,23 @@ Object.assign(module.exports, {
             });
         });
 
-        describe.skip('experimental direct exported assignments', () => {
+        describe('experimental direct exported definitions', () => {
             it('should parse inline instructions', () => {
                 const fileContent = `
 Object.assign(module.exports, { identifiedAuthenticator: buildIdentifiedAuthenticator() });
 `;
 
-                const requirements = getExports(fileContent);
+                const requirements = getExports(fileContent, true);
 
                 expect(requirements).to.deep.equal({
                     global: {
                         assignments: [
                             {
-                                property: 'identifiedAuthenticator',
-                                rawValue: 'buildIdentifiedAuthenticator()',
+                                key: 'identifiedAuthenticator',
+                                value: 'buildIdentifiedAuthenticator()',
                             },
                         ],
+                        exportedProperties: [],
                         raw:
                             'Object.assign(module.exports, { identifiedAuthenticator: buildIdentifiedAuthenticator() });\n',
                     },
@@ -159,19 +160,19 @@ Object.assign(module.exports, {
 });
 `;
 
-                const requirements = getExports(fileContent);
+                const requirements = getExports(fileContent, true);
 
                 expect(requirements).to.deep.equal({
                     global: {
                         assignments: [
                             {
-                                property: 'identifiedAuthenticator',
+                                key: 'identifiedAuthenticator',
                                 value: 'someConstructor()',
                             },
                         ],
-                        properties: ['someConstant'],
+                        exportedProperties: ['someConstant'],
                         raw:
-                            'Object.assign(module.exports, { identifiedAuthenticator: buildIdentifiedAuthenticator() });\n',
+                            'Object.assign(module.exports, { \n    identifiedAuthenticator: someConstructor(),\n    someConstant\n});\n',
                     },
                     inline: [],
                 });
@@ -183,41 +184,62 @@ Object.assign(module.exports, {
     call: someConstructor(),
     str: "hello",
     number: 42,
-    inlineObject: { ok: "..." },
     inlineArray: ["...", "..."],
     someConstant
 });
 `;
 
-                const requirements = getExports(fileContent);
+                const requirements = getExports(fileContent, true);
+
+                expect(requirements).to.deep.equal({
+                    global: {
+                        assignments: [
+                            { key: 'call', value: 'someConstructor()' },
+                            { key: 'str', value: '"hello"' },
+                            { key: 'number', value: '42' },
+                            { key: 'inlineArray', value: '["...", "..."]' },
+                        ],
+                        exportedProperties: ['someConstant'],
+                        raw:
+                            'Object.assign(module.exports, { \n    call: someConstructor(),\n    str: "hello",\n    number: 42,\n    inlineArray: ["...", "..."],\n    someConstant\n});\n',
+                    },
+                    inline: [],
+                });
+            });
+
+            it('should parse multilines object/arrays declarations following tab size', () => {
+                const fileContent = `
+Object.assign(module.exports, { 
+    singleLine: buildFirebaseAdapter({ firebaseNative }),
+    multilineFn: async function (){ 
+        // some code,
+        return {
+            someKey: "value",
+            global
+        }
+    }
+});
+`;
+
+                const requirements = getExports(fileContent, true);
 
                 expect(requirements).to.deep.equal({
                     global: {
                         assignments: [
                             {
-                                property: 'call',
-                                rawValue: 'someConstructor()',
+                                key: 'singleLine',
+                                value:
+                                    'buildFirebaseAdapter({ firebaseNative })',
                             },
                             {
-                                property: 'str',
-                                rawValue: '"hello"',
-                            },
-                            {
-                                property: 'number',
-                                rawValue: '42',
-                            },
-                            {
-                                property: 'inlineObject',
-                                rawValue: '{ ok: "..." }',
-                            },
-                            {
-                                property: 'inlineObject',
-                                rawValue: '["...", "..."]',
+                                key: 'multilineFn',
+                                value:
+                                    'async function (){    // some code,    return {        someKey: "value",        global    }}',
                             },
                         ],
-                        properties: ['someConstant'],
+                        exportedProperties: [],
                         raw:
-                            'Object.assign(module.exports, { identifiedAuthenticator: buildIdentifiedAuthenticator() });\n',
+                            'Object.assign(module.exports, { \n    singleLine: buildFirebaseAdapter({ firebaseNative }),\n    multilineFn: async function (){ \n        // some code,\n        return {\n            someKey: "value",\n            global\n        }\n    }\n});\n',
                     },
                     inline: [],
                 });
@@ -243,7 +265,7 @@ Object.assign(module.exports, {
                     inline: [],
                 });
                 expect(loggerWarnSpy).to.be.calledOnceWithExactly(
-                    `⚠ module.exports is too complex (try "experimental" mode)
+                    `⚠ module.exports contains direct declarations (try "experimental" mode)
 
     udemyExternalFields: [
         "categories",
@@ -272,7 +294,7 @@ module.exports = {
                     inline: [],
                 });
                 expect(loggerWarnSpy).to.be.calledOnceWithExactly(
-                    `⚠ module.exports support with declaration inside is not supported
+                    `⚠ module.exports support with declaration inside is skipped (try "experimental" mode)
 module.exports = {
     myFunction: function(){
         // This function should be moved at root scope
@@ -295,12 +317,12 @@ module.exports = {
                     global: {},
                     inline: [],
                 });
+
                 expect(loggerWarnSpy).to.be.calledOnceWithExactly(
-                    `⚠ module.exports support with calls inside is not supported
-    module.exports = {
+                    `⚠ module.exports contains direct declarations (try "experimental" mode)
+
         firebaseNative: buildFirebaseNative()
-    };
-`,
+    `,
                 );
             });
         });

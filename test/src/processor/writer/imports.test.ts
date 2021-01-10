@@ -27,7 +27,6 @@ describe('writer processor - imports', () => {
     it('should rewrite direct import', () => {
         const fileContent = `require('source-map-support')`;
         const requirements = getRequires(fileContent);
-        console.log(requirements)
 
         const fileUpdate = rewriteImports(fileContent, requirements);
 

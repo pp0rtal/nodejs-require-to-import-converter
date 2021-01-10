@@ -2,9 +2,13 @@
 
 export type ExportsInfo = {
     global: {
-        assignment?: string;
+        directAssignment?: string;
+        assignments?: Array<{
+            key: string;
+            value: string;
+        }>;
         raw?: string;
-        properties?: string[];
+        exportedProperties?: string[];
     };
     inline: Array<{
         raw: string;
@@ -19,9 +23,13 @@ type InlineExportedContent = ExportsInfo['inline'];
 /**
  * Search for all supported module.exports usage
  * @param content
+ * @param allowExperimental Will try to export single line assignments
  */
-export function getExports(content: string): ExportsInfo {
-    const globalExports = getGlobalExports(content);
+export function getExports(
+    content: string,
+    allowExperimental: boolean = false,
+): ExportsInfo {
+    const globalExports = getGlobalExports(content, allowExperimental);
     const inlineExports = getInlineExports(content);
 
     return {
@@ -33,23 +41,28 @@ export function getExports(content: string): ExportsInfo {
 /**
  * Returns all exported values for direct module.exports assignments
  * @param content File content
+ * @param allowExperimental
  */
-export function getGlobalExports(content: string): GlobalExportedContent {
+export function getGlobalExports(
+    content: string,
+    allowExperimental: boolean = false,
+): GlobalExportedContent {
     const exportedContent: GlobalExportedContent = {};
-    const exportsAttributionRegex = /^ *module\.exports\s*=\s*{([\s\S]*?)};?\n?/m;
-    const exportsAssignAttributionRegex = /^ *Object\.assign\(\s*module\.exports\s*,\s*{([\s\S]*?)}\);?\n?/m;
+    const exportsAttributionRegex = /^ *(?:Object\.assign\(\s*)?module\.exports\s*[=,]\s*{([\s\S]*?)}\)?;?\n?/m;
+    const exportsAttributionRegexExperiment = /^ *(?:Object\.assign\(\s*)?module\.exports\s*[=,]\s*{([\s\S]*?)\n}\)?;?\n?/m; // Search for linebreak
     const exportDirectAssignment = /^ *module\.exports\s*=\s*([^\s;]+);?\n?/m;
 
     const parseDirectAssignment = exportDirectAssignment.exec(content);
-    const parseDirectObjectAssign = exportsAttributionRegex.exec(content);
-    const parseObjectAssign = exportsAssignAttributionRegex.exec(content);
-    const parseAssign = parseDirectObjectAssign || parseObjectAssign;
+    const parseAssign = exportsAttributionRegex.exec(content);
+    const parseAssignExperiment = exportsAttributionRegexExperiment.exec(
+        content,
+    );
 
     // Case: Direct assignment with no properties module.exports=VAR
     if (parseDirectAssignment && !parseAssign) {
         return {
             raw: parseDirectAssignment[0],
-            assignment: parseDirectAssignment[1],
+            directAssignment: parseDirectAssignment[1],
         };
     }
 
@@ -57,37 +70,68 @@ export function getGlobalExports(content: string): GlobalExportedContent {
         return exportedContent;
     }
 
-    const [rawOuterExport, innerRaw] = parseAssign;
+    let [rawOuterExport, innerRaw] = parseAssign;
     const totalOpenBraces = rawOuterExport.split('{').length - 1;
     const totalCloseBraces = rawOuterExport.split('}').length - 1;
     const hasInnerScope = totalOpenBraces > 1 || totalCloseBraces > 1;
-    const hasFunctionCall = innerRaw.includes('(');
+    const isAdvancedExport = /[{}()[\]]/.test(innerRaw);
+    const isAdvancedMultilineExport =
+        isAdvancedExport && innerRaw.includes('\n') && /[[{]/.test(innerRaw);
 
-    if (hasInnerScope) {
+    if (hasInnerScope && !allowExperimental) {
         console.warn(
-            `⚠ module.exports support with declaration inside is not supported\n${rawOuterExport}`,
+            `⚠ module.exports support with declaration inside is skipped (try "experimental" mode)\n${rawOuterExport}`,
         );
         return exportedContent;
     }
 
-    if (hasFunctionCall) {
+    if (isAdvancedExport && !allowExperimental) {
         console.warn(
-            `⚠ module.exports support with calls inside is not supported\n${rawOuterExport}`,
+            `⚠ module.exports contains direct declarations (try "experimental" mode)\n${innerRaw}`,
         );
         return exportedContent;
     }
 
-    const isExperimentalExport = /[{}()[\]]/.test(innerRaw);
-    if (isExperimentalExport) {
+    // Experimental on multiline has to catch \n})?;
+    if (isAdvancedMultilineExport && parseAssignExperiment === null) {
         console.warn(
-            `⚠ module.exports is too complex (try "experimental" mode)\n${innerRaw}`,
+            `⚠ module.exports experimental mode not able to find export content\n${innerRaw}`,
         );
         return exportedContent;
     }
 
-    const exportedAttributes = parseInnerExportedMethods(innerRaw);
-    exportedContent.raw = rawOuterExport;
-    exportedContent.properties = exportedAttributes;
+    // Even more hacky than the rest of the project 😅
+    if (isAdvancedExport) {
+        if (isAdvancedMultilineExport && parseAssignExperiment) {
+            try {
+                innerRaw = parseAssignExperiment[1];
+                rawOuterExport = parseAssignExperiment[0];
+                const {
+                    assignments,
+                    exportedProperties,
+                } = parseInnerMultilineAdvancedExport(innerRaw);
+                exportedContent.raw = rawOuterExport;
+                exportedContent.assignments = assignments;
+                exportedContent.exportedProperties = exportedProperties;
+            } catch (err) {
+                console.warn(
+                    `⚠ module.exports unable to parse multiline content (${err.message})\n${parseAssignExperiment[1]}`,
+                );
+                return exportedContent;
+            }
+        } else {
+            const { assignments, exportedProperties } = parseInnerAdvancedExport(
+                innerRaw,
+            );
+            exportedContent.raw = rawOuterExport;
+            exportedContent.assignments = assignments;
+            exportedContent.exportedProperties = exportedProperties;
+        }
+    } else {
+        const exportedAttributes = parseInnerExportedMethods(innerRaw);
+        exportedContent.raw = rawOuterExport;
+        exportedContent.exportedProperties = exportedAttributes;
+    }
 
     return exportedContent;
 }
@@ -124,4 +168,117 @@ function parseInnerExportedMethods(innerContent: string): string[] {
     const methods = sanitizedContent.split(',');
 
     return methods.filter((str) => str.length > 0);
+}
+
+/**
+ * @param innerContent
+ */
+function parseInnerAdvancedExport(innerContent: string): ExportsInfo['global'] {
+    const sanitizedContent = innerContent;
+    const containsAssignments = sanitizedContent.indexOf(':') !== -1;
+    const assignmentsStr = sanitizedContent.split(
+        containsAssignments ? /,\s*\n/ : ',',
+    );
+
+    const assignments: ExportsInfo['global']['assignments'] = [];
+    const properties: ExportsInfo['global']['exportedProperties'] = [];
+
+    assignmentsStr.forEach((assignmentStr) => {
+        const twoDotsIndex = assignmentStr.indexOf(':');
+        if (twoDotsIndex === -1) {
+            properties.push(assignmentStr.trim());
+        } else {
+            assignments.push({
+                key: assignmentStr.substr(0, twoDotsIndex).trim(),
+                value: assignmentStr.substr(twoDotsIndex + 1).trim(),
+            });
+        }
+    });
+
+    return { assignments, exportedProperties: properties };
+}
+
+/**
+ * Try to spot declarations according tab size
+ * @param innerContent
+ */
+function parseInnerMultilineAdvancedExport(
+    innerContent: string,
+): ExportsInfo['global'] {
+    const assignments: ExportsInfo['global']['assignments'] = [];
+    const properties: ExportsInfo['global']['exportedProperties'] = [];
+    const sanitizedContent = innerContent
+        .replace(/^\s*\n/gm, '')
+        .replace(/^\n+/m, '');
+
+    // Check if tabulation level is standard
+    const lines = sanitizedContent.split('\n');
+    const tabParse = /^(\s*)/.exec(sanitizedContent);
+    if (tabParse === null || tabParse[1] === '') {
+        throw new Error('cannot detect tabulation level');
+    }
+    const tab = tabParse[1];
+    lines.forEach((line) => {
+        if (!line.startsWith(tab)) {
+            throw new Error('invalid tabulation level');
+        }
+    });
+
+    // Check each line for key declaration
+    const inlineNewAssign = new RegExp(
+        `^${tab}([^\\s:,?(){}="']+)\\s*:\\s*(.*?)(,?)\\s*$`,
+    );
+
+    let multilineBlocBuffer = '';
+    let multilineBlockProperty = '';
+    lines.forEach((line) => {
+        const parse = inlineNewAssign.exec(line);
+        line = line.replace(tab, ''); // tab to the left
+        if (parse === null) {
+            if (multilineBlockProperty === '') {
+                if (/[^:,=(){}]/.test(line)) {
+                    properties.push(line.trim());
+                } else {
+                    throw new Error('inconsistency');
+                }
+            } else {
+                multilineBlocBuffer += line;
+            }
+        } else {
+            // end of multiline declaration
+            if (multilineBlockProperty) {
+                assignments.push({
+                    key: multilineBlockProperty,
+                    value: multilineBlocBuffer,
+                });
+                multilineBlockProperty = '';
+                multilineBlocBuffer = '';
+            }
+
+            //
+            const [, key, rightLine, hasComma] = parse;
+            if (hasComma) {
+                assignments.push({
+                    key,
+                    value: rightLine,
+                });
+            } else {
+                multilineBlockProperty = key;
+                multilineBlocBuffer = rightLine;
+            }
+        }
+    });
+
+    if (multilineBlocBuffer && multilineBlocBuffer.trim()) {
+        if (!multilineBlockProperty) {
+            properties.push(multilineBlocBuffer.trim());
+        } else {
+            assignments.push({
+                key: multilineBlockProperty,
+                value: multilineBlocBuffer,
+            });
+        }
+    }
+
+    return { assignments, exportedProperties: properties };
 }

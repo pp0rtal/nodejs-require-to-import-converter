@@ -7,6 +7,9 @@ import { getExports } from '../../../../src/processor/reader/moduleExports';
 import { getRequires } from '../../../../src/processor/reader/requires';
 import { rewriteImports } from '../../../../src/processor/writer/imports';
 
+// TODO test assignment
+// TODO test assignemnts
+
 chai.use(sinonChai);
 const expect = chai.expect;
 
@@ -233,6 +236,19 @@ function(){
   myFunction(CONSTANT);
 }
 `);
+        });
+    });
+
+    describe.skip('multiline exports (experimental)', () => {
+        it('should rewrite direct function call', () => {
+            const fileContent = `Object.assign(module.exports, { identifiedAuthenticator: buildIdentifiedAuthenticator() });`;
+            const exports = getExports(fileContent, true);
+
+            const fileUpdate = rewriteExports(fileContent, exports);
+
+            expect(fileUpdate).to.deep.equal(
+                `export const identifiedAuthenticator = buildIdentifiedAuthenticator();`,
+            );
         });
     });
 });

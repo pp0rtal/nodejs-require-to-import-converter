@@ -29,12 +29,12 @@ function rewriteGlobalExport(
         return content;
     }
 
-    if (globalExports.assignment) {
-        content = replacePropertyDeclaration(content, globalExports.assignment);
+    if (globalExports.directAssignment) {
+        content = replacePropertyDeclaration(content, globalExports.directAssignment);
     }
 
-    if (globalExports.properties) {
-        globalExports.properties.forEach((property) => {
+    if (globalExports.exportedProperties) {
+        globalExports.exportedProperties.forEach((property) => {
             content = replacePropertyDeclaration(content, property);
         });
     }
