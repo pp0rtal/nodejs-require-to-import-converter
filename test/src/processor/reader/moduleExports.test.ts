@@ -267,7 +267,7 @@ Object.assign(module.exports, {
                             },
                             {
                                 key: 'myMultilineFunc',
-                                value: 'async myMultilineFunc(file) {\n   // code\n}',
+                                value: 'async function myMultilineFunc(file) {\n   // code\n}',
                             },
                         ],
                         exportedProperties: [],

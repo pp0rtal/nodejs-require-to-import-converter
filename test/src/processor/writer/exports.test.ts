@@ -378,7 +378,10 @@ export async function multilineFn(){
 Object.assign(module.exports, { 
     singleLine({ param }){ /* code */ },
     async function multilineFn (){ 
-        // some code,
+    }
+    async multilineFn2 (){ 
+    }
+    multilineFn3 (){ 
     }
 });
 `;
@@ -392,7 +395,12 @@ Object.assign(module.exports, {
 export function singleLine({ param }){ /* code */ }
 
 export async function multilineFn(){ 
-    // some code,
+}
+
+export async function multilineFn2(){ 
+}
+
+export function multilineFn3(){ 
 }
 `,
             );

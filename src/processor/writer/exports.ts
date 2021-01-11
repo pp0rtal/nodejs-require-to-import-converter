@@ -247,14 +247,18 @@ function moveExportedAssignment(
     const firstLine = assignment.value.split('\n')[0];
     let toInsert: string;
 
-    // Rewrite function
-    if (firstLine.includes(`${assignment.key}(`)) {
+    // Case: named function
+    if (firstLine.includes(` ${assignment.key}(`)) {
         toInsert = `\nexport ${assignment.value}\n`;
     } else {
-        const parseFunctionProto = /^(.* function)\s*(\([\s\S]*)/g.exec(assignment.value);
+        const parseFunctionProto = /^(.* function)\s*(\([\s\S]*)/g.exec(
+            assignment.value,
+        );
         if (parseFunctionProto) {
+            // Case: convert to myFunction()
             toInsert = `\nexport ${parseFunctionProto[1]} ${assignment.key}${parseFunctionProto[2]}\n`;
         } else {
+            // Not a function
             toInsert = `\nexport const ${assignment.key} = ${assignment.value};\n`;
         }
     }

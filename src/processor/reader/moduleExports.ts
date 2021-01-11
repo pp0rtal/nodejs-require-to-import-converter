@@ -274,6 +274,9 @@ function parseInnerMultilineAdvancedExport(
                 // Handle direct function declaration
                 let fn;
                 [, fn, key, rightLine, hasComma] = parseDirectFunction;
+                if (fn !== '' && !fn.includes('function')) {
+                    fn = `${fn}function `;
+                }
                 rightLine = `${fn ? fn : 'function '}${key}${rightLine}`;
             } else {
                 // @ts-ignore
