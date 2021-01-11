@@ -237,6 +237,25 @@ function(){
 }
 `);
         });
+
+        it('should rewrite exported constant in the Object.assign() ellipsis', () => {
+            const fileContent = `
+const config1 = { /* keys */ };
+const config2 = { /* keys */ };
+Object.assign(module.exports, 
+config1, 
+config2, { lib });
+function lib(){}
+`;
+            const exports = getExports(fileContent);
+            const fileUpdate = rewriteExports(fileContent, exports);
+
+            expect(fileUpdate).to.deep.equal(`
+export const config1 = { /* keys */ };
+export const config2 = { /* keys */ };
+export function lib(){}
+`);
+        });
     });
 
     describe('multiline exports (experimental)', () => {
