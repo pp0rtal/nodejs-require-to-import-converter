@@ -5,6 +5,7 @@ export type RequireInfo = {
     raw: string;
     hasDefault?: boolean;
     quoteType: string;
+    commaSeparated?: boolean;
     imports: Array<{
         key: string;
         alias?: string;
@@ -22,11 +23,17 @@ export function getRequires(content: string): RequireInfo[] {
     const requireCallLineRegex = /^\n?(([^;=/*().]*[=])?\s*require\s*\([^)]+\)[^\n]*)$/gm;
 
     let parseRequire;
+    let commaSeparated = false;
     do {
         parseRequire = requireCallLineRegex.exec(content);
         if (parseRequire !== null) {
-            const parsedRequirement = parseRequirementLine(parseRequire[1]);
+            const parsedRequirement = parseRequirementStatement(
+                parseRequire[1],
+                commaSeparated,
+            );
+            commaSeparated = parsedRequirement?.commaSeparated || false;
             if (parsedRequirement !== null) {
+                delete parsedRequirement.commaSeparated;
                 requirements.push(parsedRequirement);
             }
         }
@@ -40,8 +47,11 @@ export function getRequires(content: string): RequireInfo[] {
  * @param rawLine
  * @return null or parsed requirement
  */
-function parseRequirementLine(rawLine: string): RequireInfo | null {
-    const requireRegex = /^\s*(?:(const|let|var)?\s*([^=/]+)\s*=)?\s*require\s*\(\s*(['"])([^'"]+)['"]\s*\)(?:\.([^\s;]+))?\s*;?/g;
+function parseRequirementStatement(
+    rawLine: string,
+    isCommaDelimited: boolean,
+): RequireInfo | null {
+    const requireRegex = /^\s*(?:(const|let|var)?\s*([^=/]+)\s*=)?\s*require\s*\(\s*(['"])([^'"]+)['"]\s*\)(?:\.([^\s;]+))?\s*;?(,)?/g;
     const parse = requireRegex.exec(rawLine);
 
     // Can happen for various syntactical reasons
@@ -57,6 +67,7 @@ function parseRequirementLine(rawLine: string): RequireInfo | null {
         quoteType,
         libPathRaw,
         additionalPath,
+        comma,
     ] = parse;
 
     if (!varType && /^\s*require/.test(raw)) {
@@ -71,6 +82,7 @@ function parseRequirementLine(rawLine: string): RequireInfo | null {
             target: libPathRaw,
             raw,
             quoteType,
+            commaSeparated: comma === ',',
             imports: [],
         };
     }
@@ -80,7 +92,7 @@ function parseRequirementLine(rawLine: string): RequireInfo | null {
         return null;
     }
 
-    if (!varType) {
+    if (!varType && !isCommaDelimited) {
         console.warn(`⚠️require is called on some global variable\n${raw}`);
         return null;
     }
@@ -132,6 +144,7 @@ function parseRequirementLine(rawLine: string): RequireInfo | null {
     const output: RequireInfo = {
         target: libPathRaw,
         raw,
+        commaSeparated: comma === ',',
         quoteType,
         imports: parsedAttributes,
     };

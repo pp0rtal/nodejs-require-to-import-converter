@@ -162,6 +162,38 @@ const createClock = require("sinon").clock.create;`;
             ]);
         });
 
+        it('should support comma separated require', () => {
+            const fileContent = `var fs = require("graceful-fs"),
+    xml2js = require("xml2js");`;
+
+            const requirements = getRequires(fileContent);
+
+            expect(requirements).to.deep.equal([
+                {
+                    target: 'graceful-fs',
+                    quoteType: "\"",
+                    raw: "var fs = require(\"graceful-fs\"),",
+                    imports: [
+                        {
+                            key: '*',
+                            alias: 'fs',
+                        },
+                    ],
+                },
+                {
+                    target: 'xml2js',
+                    quoteType: "\"",
+                    raw: "    xml2js = require(\"xml2js\");",
+                    imports: [
+                        {
+                            key: '*',
+                            alias: 'xml2js',
+                        },
+                    ],
+                },
+            ]);
+        });
+
         it('should avoid commented require() calls', () => {
             const fileContent = `some_code() // const _ = require('lodash');`;
 

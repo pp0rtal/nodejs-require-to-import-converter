@@ -244,6 +244,39 @@ Object.assign(module.exports, {
                     inline: [],
                 });
             });
+
+            it('should parse multilines function without alias', () => {
+                const fileContent = `
+Object.assign(module.exports, { 
+    myInlineFunc () { return true },
+    async myMultilineFunc(file) {
+       // code
+    }
+});
+`;
+
+                const requirements = getExports(fileContent, true);
+
+                expect(requirements).to.deep.equal({
+                    global: {
+                        assignments: [
+                            {
+                                key: 'myInlineFunc',
+                                value:
+                                    'function myInlineFunc() { return true }',
+                            },
+                            {
+                                key: 'myMultilineFunc',
+                                value: 'async myMultilineFunc(file) {\n   // code\n}',
+                            },
+                        ],
+                        exportedProperties: [],
+                        raw:
+                            'Object.assign(module.exports, { \n    myInlineFunc () { return true },\n    async myMultilineFunc(file) {\n       // code\n    }\n});\n',
+                    },
+                    inline: [],
+                });
+            });
         });
 
         describe('non-supported exports', () => {

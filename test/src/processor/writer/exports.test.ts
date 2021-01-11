@@ -362,13 +362,38 @@ export const inlineArray = ["...", "..."];
 
 export const singleLine = buildFirebaseAdapter({ firebaseNative });
 
-export const multilineFn = async function (){
+export async function multilineFn(){
     // some code,
     return {
         someKey: "value",
         global
     }
-};
+}
+`,
+            );
+        });
+
+        it('should export direct named functions', () => {
+            const fileContent = `
+Object.assign(module.exports, { 
+    singleLine({ param }){ /* code */ },
+    async function multilineFn (){ 
+        // some code,
+    }
+});
+`;
+            const exports = getExports(fileContent, true);
+
+            const fileUpdate = rewriteExports(fileContent, exports);
+
+            expect(fileUpdate).to.deep.equal(
+                `
+
+export function singleLine({ param }){ /* code */ }
+
+export async function multilineFn(){ 
+    // some code,
+}
 `,
             );
         });

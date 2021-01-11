@@ -244,7 +244,21 @@ function moveExportedAssignment(
         value: string;
     },
 ): string {
-    const toInsert = `\nexport const ${assignment.key} = ${assignment.value};\n`;
+    const firstLine = assignment.value.split('\n')[0];
+    let toInsert: string;
+
+    // Rewrite function
+    if (firstLine.includes(`${assignment.key}(`)) {
+        toInsert = `\nexport ${assignment.value}\n`;
+    } else {
+        const parseFunctionProto = /^(.* function)\s*(\([\s\S]*)/g.exec(assignment.value);
+        if (parseFunctionProto) {
+            toInsert = `\nexport ${parseFunctionProto[1]} ${assignment.key}${parseFunctionProto[2]}\n`;
+        } else {
+            toInsert = `\nexport const ${assignment.key} = ${assignment.value};\n`;
+        }
+    }
+
     fileContent = insertBeforeSearch(fileContent, rawExport, toInsert, true);
     return fileContent;
 }

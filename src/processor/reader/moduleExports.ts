@@ -233,17 +233,22 @@ function parseInnerMultilineAdvancedExport(
         }
     });
 
-    // Check each line for key declaration
+    // Check each line for key declaration or direct function declaration
     const inlineNewAssign = new RegExp(
         `^${tab}([^\\s:,?(){}="']+)\\s*:\\s*(.*?)(,?)\\s*$`,
+    );
+    const directFunction = new RegExp(
+        `^${tab}((?:async\\s+)?(?:function\\s+)?)([^\\s:,?(){}="']+)\\s*(\\(.*?)(,?)$`,
     );
 
     let multilineBlocBuffer = '';
     let multilineBlockProperty = '';
     lines.forEach((line) => {
-        const parse = inlineNewAssign.exec(line);
+        const parseAliasDeclaration = inlineNewAssign.exec(line);
+        const parseDirectFunction = directFunction.exec(line);
+
         line = line.replace(tab, ''); // tab to the left
-        if (parse === null) {
+        if (parseAliasDeclaration === null && parseDirectFunction === null) {
             if (multilineBlockProperty === '') {
                 if (/[^:,=(){}]/.test(line)) {
                     properties.push(line.trim());
@@ -264,8 +269,17 @@ function parseInnerMultilineAdvancedExport(
                 multilineBlocBuffer = '';
             }
 
-            //
-            const [, key, rightLine, hasComma] = parse;
+            let key, rightLine, hasComma;
+            if (parseAliasDeclaration === null && parseDirectFunction) {
+                // Handle direct function declaration
+                let fn;
+                [, fn, key, rightLine, hasComma] = parseDirectFunction;
+                rightLine = `${fn ? fn : 'function '}${key}${rightLine}`;
+            } else {
+                // @ts-ignore
+                [, key, rightLine, hasComma] = parseAliasDeclaration;
+            }
+
             if (hasComma) {
                 assignments.push({
                     key,
