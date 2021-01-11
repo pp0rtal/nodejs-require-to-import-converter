@@ -6,6 +6,7 @@ import { getRequires } from './reader/requires';
 import { getExports } from './reader/moduleExports';
 import { rewriteImports } from './writer/imports';
 import { rewriteExports } from './writer/exports';
+import { REFORMAT_EXPORTS_DIRECT_DEFINITION } from './config';
 
 const stats = {
     total: 0,
@@ -27,7 +28,7 @@ export async function updateFiles(filePaths: string[]) {
 function getUpdatedFile(path: string, content: string) {
     // Read
     const requirements = getRequires(content);
-    const exports = getExports(content);
+    const exports = getExports(content, REFORMAT_EXPORTS_DIRECT_DEFINITION);
     const nothingToDo =
         requirements.length === 0 &&
         !exports.global.raw &&
@@ -51,7 +52,5 @@ function updateStatus(file: string) {
     const str_total = String(stats.total).padStart(digits, ' ');
     const str_percent = String(percent).padStart(3, ' ');
 
-    console.log(
-        `\r(${str_current}/${str_total}) ${str_percent}% - ${file}`,
-    );
+    console.log(`\r(${str_current}/${str_total}) ${str_percent}% - ${file}`);
 }

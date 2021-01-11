@@ -252,14 +252,16 @@ function(){
         });
 
         it('should export constants and direct exports', () => {
+            const loggerWarnSpy = sandbox.spy(console, 'warn');
             const fileContent = `
-import { someLibs } from './package'
+import { someFn1, someFn2 } from './package'
 
 const someConstant = 56;
 Object.assign(module.exports, { 
     identifiedAuthenticator: someConstructor(),
     someConstant,
-    someLibs,
+    someFn1,
+    someFn2,
 });
 `;
             const exports = getExports(fileContent, true);
@@ -268,12 +270,35 @@ Object.assign(module.exports, {
 
             expect(fileUpdate).to.deep.equal(
                 `
-export { someLibs } from './package'
+export { someFn1, someFn2 } from './package'
 
 export const someConstant = 56;
 
 export const identifiedAuthenticator = someConstructor();
 `,
+            );
+            expect(loggerWarnSpy).to.not.be.called;
+        });
+
+        it('should warn if direct export is not found', () => {
+            const loggerWarnSpy = sandbox.spy(console, 'warn');
+            const fileContent = `
+import { someLibs } from './package'
+module.exports = { someLibs, someMissingLib };
+`;
+
+            const exports = getExports(fileContent, true);
+
+            const fileUpdate = rewriteExports(fileContent, exports);
+
+            expect(fileUpdate).to.deep.equal(
+                `
+export { someLibs } from './package'
+`,
+            );
+
+            expect(loggerWarnSpy).to.be.calledOnceWithExactly(
+                `⚠️cannot find and export declaration of property "someMissingLib"`,
             );
         });
 

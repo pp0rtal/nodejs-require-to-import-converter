@@ -144,7 +144,7 @@ function replacePropertyDeclaration(
 
         const importDeclaration = findImportRegex.exec(fileContent);
         const exportDeclaration = findExportRegex.exec(fileContent);
-        if (!findImportRegex && exportDeclaration) {
+        if (!importDeclaration && exportDeclaration) {
             return true;
         }
 
