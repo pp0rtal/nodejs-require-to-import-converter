@@ -225,6 +225,7 @@ Object.assign(module.exports, {
     call: someConstructor(),
     str: "hello",
     number: 42,
+    myFn,
     inlineArray: ["...", "..."],
     someConstant
 });
@@ -240,9 +241,9 @@ Object.assign(module.exports, {
                             { key: 'number', value: '42' },
                             { key: 'inlineArray', value: '["...", "..."]' },
                         ],
-                        exportedProperties: ['someConstant'],
+                        exportedProperties: ['myFn', 'someConstant'],
                         raw:
-                            'Object.assign(module.exports, { \n    call: someConstructor(),\n    str: "hello",\n    number: 42,\n    inlineArray: ["...", "..."],\n    someConstant\n});\n',
+                            'Object.assign(module.exports, { \n    call: someConstructor(),\n    str: \"hello\",\n    number: 42,\n    myFn,\n    inlineArray: [\"...\", \"...\"],\n    someConstant\n});\n',
                     },
                     inline: [],
                 });

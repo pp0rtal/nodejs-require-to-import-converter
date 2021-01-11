@@ -329,5 +329,8 @@ function parseInnerMultilineAdvancedExport(
         }
     }
 
-    return { assignments, exportedProperties: properties };
+    return {
+        assignments,
+        exportedProperties: properties.map((str) => str.replace(/[^\w]/g, '')),
+    };
 }

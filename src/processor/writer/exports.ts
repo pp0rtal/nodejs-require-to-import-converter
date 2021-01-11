@@ -100,6 +100,7 @@ function replacePropertyDeclaration(
     const rawPropertyDeclaration = findPropertyDeclaration(content, assignment);
 
     if (rawPropertyDeclaration === null && rawPropertyImport === null) {
+        console.log(assignment)
         console.warn(
             `⚠️cannot find and export declaration of property "${assignment}"`,
         );
