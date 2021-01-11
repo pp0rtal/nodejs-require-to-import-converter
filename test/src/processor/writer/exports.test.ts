@@ -251,15 +251,39 @@ function(){
             );
         });
 
+        it('should export constants with an alias', () => {
+            const loggerWarnSpy = sandbox.spy(console, 'warn');
+            const fileContent = `
+const someConstant = {};
+module.exports = { 
+    alias: someConstant,
+};
+`;
+            const exports = getExports(fileContent, true);
+
+            const fileUpdate = rewriteExports(fileContent, exports);
+
+            expect(fileUpdate).to.deep.equal(
+                `
+const someConstant = {};
+
+export const alias = someConstant;
+`,
+            );
+            expect(loggerWarnSpy).to.not.be.called;
+        });
+
         it('should export constants and direct exports', () => {
             const loggerWarnSpy = sandbox.spy(console, 'warn');
             const fileContent = `
 import { someFn1, someFn2 } from './package'
 
 const someConstant = 56;
+
 Object.assign(module.exports, { 
     identifiedAuthenticator: someConstructor(),
     someConstant,
+    someAlias: someConstant,
     someFn1,
     someFn2,
 });
@@ -275,6 +299,8 @@ export { someFn1, someFn2 } from './package'
 export const someConstant = 56;
 
 export const identifiedAuthenticator = someConstructor();
+
+export const someAlias = someConstant;
 `,
             );
             expect(loggerWarnSpy).to.not.be.called;

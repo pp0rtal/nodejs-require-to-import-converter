@@ -39,7 +39,16 @@ function rewriteGlobalExport(
 
     if (globalExports.exportedProperties) {
         globalExports.exportedProperties.forEach((property) => {
-            content = replacePropertyDeclaration(content, property);
+            const [alias, key] = property.split(':');
+            // module.exports({ alias: originalKeyToExport })
+            if (alias && key) {
+                content = moveExportedAssignment(content, globalExports.raw, {
+                    key: alias,
+                    value: key,
+                });
+            } else {
+                content = replacePropertyDeclaration(content, property);
+            }
         });
     }
 
@@ -236,6 +245,6 @@ function moveExportedAssignment(
     },
 ): string {
     const toInsert = `\nexport const ${assignment.key} = ${assignment.value};\n`;
-    fileContent = insertBeforeSearch(fileContent, rawExport, toInsert);
+    fileContent = insertBeforeSearch(fileContent, rawExport, toInsert, true);
     return fileContent;
 }
