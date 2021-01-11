@@ -48,7 +48,7 @@ export function getGlobalExports(
     allowExperimental: boolean = false,
 ): GlobalExportedContent {
     const exportedContent: GlobalExportedContent = {};
-    const exportsAttributionRegex = /^ *(?:Object\.assign\(\s*)?module\.exports\s*[=,]\s*{([\s\S]*?)}\)?;?\n?/m;
+    const exportsAttributionRegex = /^ *(?:Object\.assign\(\s*)?module\.exports\s*[=,]([^{}=()\[\]]+)?\s*{([\s\S]*?)}\)?;?\n?/m;
     const exportsAttributionRegexExperiment = /^ *(?:Object\.assign\(\s*)?module\.exports\s*[=,]\s*{([\s\S]*?)\n}\)?;?\n?/m; // Search for linebreak
     const exportDirectAssignment = /^ *module\.exports\s*=\s*([^\s;]+);?\n?/m;
 
@@ -70,7 +70,7 @@ export function getGlobalExports(
         return exportedContent;
     }
 
-    let [rawOuterExport, innerRaw] = parseAssign;
+    let [rawOuterExport, ellipsis, innerRaw] = parseAssign;
     const totalOpenBraces = rawOuterExport.split('{').length - 1;
     const totalCloseBraces = rawOuterExport.split('}').length - 1;
     const hasInnerScope = totalOpenBraces > 1 || totalCloseBraces > 1;
@@ -132,6 +132,13 @@ export function getGlobalExports(
         const exportedAttributes = parseInnerExportedMethods(innerRaw);
         exportedContent.raw = rawOuterExport;
         exportedContent.exportedProperties = exportedAttributes;
+    }
+
+    if (ellipsis) {
+        const { exportedProperties } = parseInnerAdvancedExport(ellipsis);
+        exportedContent.exportedProperties = (exportedProperties || []).concat(
+            exportedContent.exportedProperties || [],
+        );
     }
 
     return exportedContent;
@@ -201,7 +208,10 @@ function parseInnerAdvancedExport(
         }
     });
 
-    return { assignments, exportedProperties: properties };
+    return {
+        assignments,
+        exportedProperties: properties.filter((str) => str !== ''),
+    };
 }
 
 /**

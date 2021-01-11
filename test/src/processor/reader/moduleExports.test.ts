@@ -114,6 +114,27 @@ Object.assign(module.exports, {
             });
         });
 
+        it('should parse ellipsis members in Object.assign', () => {
+            const fileContent = `
+const config1 = { /* keys */ };
+const config2 = { /* keys */ };
+Object.assign(module.exports, 
+config1, 
+config2, { lib });
+function lib(){}
+`;
+
+            const requirements = getExports(fileContent);
+
+            expect(requirements).to.deep.equal({
+                global: {
+                    exportedProperties: ['config1', 'config2', 'lib'],
+                    raw: 'Object.assign(module.exports, \nconfig1, \nconfig2, { lib });\n',
+                },
+                inline: [],
+            });
+        });
+
         it('should not take experimental export and warn', () => {
             const fileContent = `
 // Object.assign(module.exports, { ...lib1, ...lib2 });
@@ -267,7 +288,8 @@ Object.assign(module.exports, {
                             },
                             {
                                 key: 'myMultilineFunc',
-                                value: 'async function myMultilineFunc(file) {\n   // code\n}',
+                                value:
+                                    'async function myMultilineFunc(file) {\n   // code\n}',
                             },
                         ],
                         exportedProperties: [],
