@@ -49,10 +49,12 @@ export function getGlobalExports(
 ): GlobalExportedContent {
     const exportedContent: GlobalExportedContent = {};
     const exportsAttributionRegex = /^ *(?:Object\.assign\(\s*)?module\.exports\s*[=,]([^{}=()\[\]]+)?\s*{([\s\S]*?)}\)?;?\n?/m;
+    const exportsAssignEllipsisOnly = /^ *Object\.assign\(\s*module\.exports\s*,([^{}=()\[\]]+)\);?\n?/m;
     const exportsAttributionRegexExperiment = /^ *(?:Object\.assign\(\s*)?module\.exports\s*[=,]\s*{([\s\S]*?)\n}\)?;?\n?/m; // Search for linebreak
     const exportDirectAssignment = /^ *module\.exports\s*=\s*([^\s;]+);?\n?/m;
 
     const parseDirectAssignment = exportDirectAssignment.exec(content);
+    const parseAssignEllipsis = exportsAssignEllipsisOnly.exec(content);
     const parseAssign = exportsAttributionRegex.exec(content);
     const parseAssignExperiment = exportsAttributionRegexExperiment.exec(
         content,
@@ -64,6 +66,17 @@ export function getGlobalExports(
             raw: parseDirectAssignment[0],
             directAssignment: parseDirectAssignment[1],
         };
+    }
+
+    if (!parseAssign && parseAssignEllipsis) {
+        const { exportedProperties } = parseInnerAdvancedExport(
+            parseAssignEllipsis[1],
+        );
+        exportedContent.exportedProperties = (exportedProperties || []).concat(
+            exportedContent.exportedProperties || [],
+        );
+        exportedContent.raw = parseAssignEllipsis[0];
+        return exportedContent;
     }
 
     if (parseAssign === null) {

@@ -135,6 +135,26 @@ function lib(){}
             });
         });
 
+        it('should parse ellipsis members in Object.assign with no inner object', () => {
+            const fileContent = `
+const config1 = { /* keys */ };
+const config2 = { /* keys */ };
+Object.assign(module.exports, 
+config1, 
+config2 );
+`;
+
+            const requirements = getExports(fileContent);
+
+            expect(requirements).to.deep.equal({
+                global: {
+                    exportedProperties: ['config1', 'config2'],
+                    raw: 'Object.assign(module.exports, \nconfig1, \nconfig2 );\n',
+                },
+                inline: [],
+            });
+        });
+
         it('should not take experimental export and warn', () => {
             const fileContent = `
 // Object.assign(module.exports, { ...lib1, ...lib2 });
