@@ -239,7 +239,7 @@ function(){
         });
     });
 
-    describe.skip('multiline exports (experimental)', () => {
+    describe('multiline exports (experimental)', () => {
         it('should rewrite direct function call', () => {
             const fileContent = `Object.assign(module.exports, { identifiedAuthenticator: buildIdentifiedAuthenticator() });`;
             const exports = getExports(fileContent, true);
@@ -247,7 +247,78 @@ function(){
             const fileUpdate = rewriteExports(fileContent, exports);
 
             expect(fileUpdate).to.deep.equal(
-                `export const identifiedAuthenticator = buildIdentifiedAuthenticator();`,
+                `\nexport const identifiedAuthenticator = buildIdentifiedAuthenticator();\n`,
+            );
+        });
+
+        it('should export constants and direct exports', () => {
+            const fileContent = `
+import { someLibs } from './package'
+
+const someConstant = 56;
+Object.assign(module.exports, { 
+    identifiedAuthenticator: someConstructor(),
+    someConstant,
+    someLibs,
+});
+`;
+            const exports = getExports(fileContent, true);
+
+            const fileUpdate = rewriteExports(fileContent, exports);
+
+            expect(fileUpdate).to.deep.equal(
+                `
+export { someLibs } from './package'
+
+export const someConstant = 56;
+
+export const identifiedAuthenticator = someConstructor();
+`,
+            );
+        });
+
+        it('should export various direct definition', () => {
+            const fileContent = `
+Object.assign(module.exports, { 
+    call: someConstructor(),
+    str: "hello",
+    number: 42,
+    inlineArray: ["...", "..."],
+    singleLine: buildFirebaseAdapter({ firebaseNative }),
+    multilineFn: async function (){ 
+        // some code,
+        return {
+            someKey: "value",
+            global
+        }
+    }
+});
+`;
+            const exports = getExports(fileContent, true);
+
+            const fileUpdate = rewriteExports(fileContent, exports);
+
+            expect(fileUpdate).to.deep.equal(
+                `
+
+export const call = someConstructor();
+
+export const str = "hello";
+
+export const number = 42;
+
+export const inlineArray = ["...", "..."];
+
+export const singleLine = buildFirebaseAdapter({ firebaseNative });
+
+export const multilineFn = async function (){
+    // some code,
+    return {
+        someKey: "value",
+        global
+    }
+};
+`,
             );
         });
     });

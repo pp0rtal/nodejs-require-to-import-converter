@@ -1,5 +1,6 @@
 import { ExportsInfo } from '../reader/moduleExports';
 import { escapeRegExp } from 'tslint/lib/utils';
+import { insertBeforeSearch } from '../../utils/string';
 
 /**
  *
@@ -30,12 +31,25 @@ function rewriteGlobalExport(
     }
 
     if (globalExports.directAssignment) {
-        content = replacePropertyDeclaration(content, globalExports.directAssignment);
+        content = replacePropertyDeclaration(
+            content,
+            globalExports.directAssignment,
+        );
     }
 
     if (globalExports.exportedProperties) {
         globalExports.exportedProperties.forEach((property) => {
             content = replacePropertyDeclaration(content, property);
+        });
+    }
+
+    if (globalExports.assignments) {
+        globalExports.assignments.forEach((assignment) => {
+            content = moveExportedAssignment(
+                content,
+                globalExports.raw,
+                assignment,
+            );
         });
     }
 
@@ -113,20 +127,24 @@ function replacePropertyDeclaration(
         const findImportRegex = new RegExp(
             isEllipsis
                 ? `^import \\* as ${escapeRegExp(property)} from .*$`
-                : `^import [\\s\\S]*?[\\s{,]${escapeRegExp(property)}[,\\s}][\\s\\S]*?from.*$`,
+                : `^import [\\s\\S]*?[\\s{,]${escapeRegExp(
+                      property,
+                  )}[,\\s}][\\s\\S]*?from.*$`,
             'm',
         );
 
         const findExportRegex = new RegExp(
             isEllipsis
                 ? `^export \\* as ${escapeRegExp(property)} from .*$`
-                : `^export [\\s\\S]*[\\s{,]${escapeRegExp(property)}[,\\s}][\\s\\S]*from.*$`,
+                : `^export [\\s\\S]*[\\s{,]${escapeRegExp(
+                      property,
+                  )}[,\\s}][\\s\\S]*from.*$`,
             'm',
         );
 
         const importDeclaration = findImportRegex.exec(fileContent);
         const exportDeclaration = findExportRegex.exec(fileContent);
-        if(!findImportRegex && exportDeclaration){
+        if (!findImportRegex && exportDeclaration) {
             return true;
         }
 
@@ -206,5 +224,18 @@ function rewriteInlineExports(
         );
     });
 
+    return fileContent;
+}
+
+function moveExportedAssignment(
+    fileContent: string,
+    rawExport: string = '',
+    assignment: {
+        key: string;
+        value: string;
+    },
+): string {
+    const toInsert = `\nexport const ${assignment.key} = ${assignment.value};\n`;
+    fileContent = insertBeforeSearch(fileContent, rawExport, toInsert);
     return fileContent;
 }

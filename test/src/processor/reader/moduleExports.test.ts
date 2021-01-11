@@ -234,7 +234,7 @@ Object.assign(module.exports, {
                             {
                                 key: 'multilineFn',
                                 value:
-                                    'async function (){    // some code,    return {        someKey: "value",        global    }}',
+                                    'async function (){\n    // some code,\n    return {\n        someKey: "value",\n        global\n    }\n}',
                             },
                         ],
                         exportedProperties: [],
@@ -247,7 +247,7 @@ Object.assign(module.exports, {
         });
 
         describe('non-supported exports', () => {
-            it('should not take advanced exports (experimental)', () => {
+            it('should not take advanced exports when experimental mode is disabled', () => {
                 const loggerWarnSpy = sandbox.spy(console, 'warn');
                 const fileContent = `
 Object.assign(module.exports, {

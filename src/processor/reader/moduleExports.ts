@@ -120,9 +120,10 @@ export function getGlobalExports(
                 return exportedContent;
             }
         } else {
-            const { assignments, exportedProperties } = parseInnerAdvancedExport(
-                innerRaw,
-            );
+            const {
+                assignments,
+                exportedProperties,
+            } = parseInnerAdvancedExport(innerRaw);
             exportedContent.raw = rawOuterExport;
             exportedContent.assignments = assignments;
             exportedContent.exportedProperties = exportedProperties;
@@ -173,7 +174,12 @@ function parseInnerExportedMethods(innerContent: string): string[] {
 /**
  * @param innerContent
  */
-function parseInnerAdvancedExport(innerContent: string): ExportsInfo['global'] {
+function parseInnerAdvancedExport(
+    innerContent: string,
+): {
+    assignments: ExportsInfo['global']['assignments'];
+    exportedProperties: ExportsInfo['global']['exportedProperties'];
+} {
     const sanitizedContent = innerContent;
     const containsAssignments = sanitizedContent.indexOf(':') !== -1;
     const assignmentsStr = sanitizedContent.split(
@@ -204,7 +210,10 @@ function parseInnerAdvancedExport(innerContent: string): ExportsInfo['global'] {
  */
 function parseInnerMultilineAdvancedExport(
     innerContent: string,
-): ExportsInfo['global'] {
+): {
+    assignments: ExportsInfo['global']['assignments'];
+    exportedProperties: ExportsInfo['global']['exportedProperties'];
+} {
     const assignments: ExportsInfo['global']['assignments'] = [];
     const properties: ExportsInfo['global']['exportedProperties'] = [];
     const sanitizedContent = innerContent
@@ -242,7 +251,7 @@ function parseInnerMultilineAdvancedExport(
                     throw new Error('inconsistency');
                 }
             } else {
-                multilineBlocBuffer += line;
+                multilineBlocBuffer += `\n${line}`;
             }
         } else {
             // end of multiline declaration

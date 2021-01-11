@@ -21,7 +21,6 @@ describe('lib - fs', () => {
             expect(files).to.deep.equal([
                 './test/fixtures/fakefs/index.js',
                 './test/fixtures/fakefs/lib/hello.js',
-                './test/fixtures/fakefs/node_modules/fakepackage/data.json',
                 './test/fixtures/fakefs/node_modules/fakepackage/test.js',
             ]);
         });
