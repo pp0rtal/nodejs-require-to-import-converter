@@ -50,6 +50,26 @@ Object.assign(module.exports,
             });
         });
 
+        it('should parse multiline module.exports with _.extend()', () => {
+            const fileContent =
+                `
+_.extend(module.exports,
+    {
+        myFunction
+    }
+);`;
+
+            const requirements = getExports(fileContent);
+
+            expect(requirements).to.deep.equal({
+                global: {
+                    exportedProperties: ['myFunction'],
+                    raw: '_.extend(module.exports,\n    {\n        myFunction\n    }\n);',
+                },
+                inline: [],
+            });
+        });
+
         it('should parse inline module.exports with a function call', () => {
             const fileContent =
                 '\n\n\nObject.assign(module.exports, {myFunction})\n\n\n';
