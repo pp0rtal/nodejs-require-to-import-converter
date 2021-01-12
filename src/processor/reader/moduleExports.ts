@@ -295,7 +295,10 @@ function parseInnerMultilineAdvancedExport(
         const parseAliasDeclaration = inlineNewAssign.exec(line);
         const parseDirectFunction = directFunction.exec(line);
 
-        if (parseAliasDeclaration === null && parseDirectFunction === null) {
+        if(line === '' && !multilineBlockProperty) {
+            // comment out of block declaration are lost
+        }
+        else if (parseAliasDeclaration === null && parseDirectFunction === null) {
             if (multilineBlockProperty === '') {
                 if (/[^:,=(){}]/.test(line)) {
                     properties.push(line.trim());

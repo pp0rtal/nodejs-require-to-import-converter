@@ -367,6 +367,8 @@ Object.assign(module.exports, {
                 const fileContent = `
 Object.assign(module.exports, {
     singleLine: buildFirebaseAdapter({ firebaseNative }),
+
+    // Lost comment
     multilineFn: async function (){
         // some code,
         return {
@@ -395,7 +397,7 @@ Object.assign(module.exports, {
                         ],
                         exportedProperties: [],
                         raw:
-                            'Object.assign(module.exports, {\n    singleLine: buildFirebaseAdapter({ firebaseNative }),\n    multilineFn: async function (){\n        // some code,\n        return {\n            someKey: \"value\",\n            global\n        }\n    }\n});\n',
+                            'Object.assign(module.exports, {\n    singleLine: buildFirebaseAdapter({ firebaseNative }),\n\n    // Lost comment\n    multilineFn: async function (){\n        // some code,\n        return {\n            someKey: \"value\",\n            global\n        }\n    }\n});\n',
                     },
                     inline: [],
                 });
