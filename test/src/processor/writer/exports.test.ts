@@ -118,7 +118,7 @@ export { fn } from './lib2';
 `);
     });
 
-    it('should rewrite export assignments on a single function', () => {
+    it('should rewrite export assignments on a detached single function', () => {
         const fileContent = `
 function myMethod () {}
 module.exports = myMethod;
@@ -128,7 +128,24 @@ module.exports = myMethod;
         const fileUpdate = rewriteExports(fileContent, exports);
 
         expect(fileUpdate).to.deep.equal(`
-export function myMethod () {}
+export default function myMethod () {}
+`);
+    });
+
+    it('should rewrite direct multiline export', () => {
+        const fileContent = `
+module.exports = function (data) {
+    return u_xml2js.read(data).then(json => snTree(json.manifest));
+};
+`;
+        const exports = getExports(fileContent);
+
+        const fileUpdate = rewriteExports(fileContent, exports);
+
+        expect(fileUpdate).to.deep.equal(`
+export default function (data) {
+    return u_xml2js.read(data).then(json => snTree(json.manifest));
+};
 `);
     });
 

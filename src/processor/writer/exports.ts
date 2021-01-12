@@ -30,11 +30,24 @@ function rewriteGlobalExport(
         return content;
     }
 
+    // Default export (export=)
     if (globalExports.directAssignment) {
-        content = replacePropertyDeclaration(
-            content,
+        const isDirectDeclaration = /[,={}]/.test(
             globalExports.directAssignment,
         );
+
+        if (isDirectDeclaration) {
+            content = content.replace(
+                globalExports.raw,
+                `export default ${globalExports.directAssignment}`,
+            );
+        } else {
+            content = replacePropertyDeclaration(
+                content,
+                globalExports.directAssignment,
+                true,
+            );
+        }
     }
 
     if (globalExports.exportedProperties) {
@@ -77,10 +90,12 @@ function rewriteGlobalExport(
  * Update const / function / class declaration using export keyword
  * @param content
  * @param assignment
+ * @param defaultExport
  */
 function replacePropertyDeclaration(
     content: string,
     assignment: string,
+    defaultExport: boolean = false,
 ): string {
     const isEllipsis = assignment.startsWith('...');
     if (isEllipsis) {
@@ -100,15 +115,15 @@ function replacePropertyDeclaration(
     const rawPropertyDeclaration = findPropertyDeclaration(content, assignment);
 
     if (rawPropertyDeclaration === null && rawPropertyImport === null) {
-        console.log(assignment)
         console.warn(
             `⚠️cannot find and export declaration of property "${assignment}"`,
         );
     }
     if (rawPropertyDeclaration) {
+        const defaultKey = defaultExport ? 'default ' : '';
         content = content.replace(
             rawPropertyDeclaration,
-            `export ${rawPropertyDeclaration}`,
+            `export ${defaultKey}${rawPropertyDeclaration}`,
         );
     } else if (rawPropertyImport) {
         const updatedImport = isEllipsis
