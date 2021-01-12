@@ -53,7 +53,7 @@ Object.assign(module.exports,
         it('should parse multiline module.exports with _.extend()', () => {
             const fileContent =
                 `
-_.extend(module.exports,
+_.extend(exports,
     {
         myFunction
     }
@@ -64,7 +64,7 @@ _.extend(module.exports,
             expect(requirements).to.deep.equal({
                 global: {
                     exportedProperties: ['myFunction'],
-                    raw: '_.extend(module.exports,\n    {\n        myFunction\n    }\n);',
+                    raw: '_.extend(exports,\n    {\n        myFunction\n    }\n);',
                 },
                 inline: [],
             });
