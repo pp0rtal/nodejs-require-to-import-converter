@@ -16,3 +16,8 @@ export const IMPORT_LAST_COMMA: boolean = true;
  * Will try to move and export direct function definition in module.export
  */
 export const REFORMAT_EXPORTS_DIRECT_DEFINITION: boolean = true;
+
+/**
+ * Will convert require("./myfile.js") to import "myfile" (no extension)
+ */
+export const REMOVE_JS_EXT: boolean = true;

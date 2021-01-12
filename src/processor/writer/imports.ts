@@ -1,5 +1,5 @@
 import { RequireInfo } from '../reader/requires';
-import { IMPORT_LAST_COMMA, IMPORT_QUOTE } from '../config';
+import {IMPORT_LAST_COMMA, IMPORT_QUOTE, REMOVE_JS_EXT} from '../config';
 
 /**
  *
@@ -55,6 +55,12 @@ function generateImport(requirement: RequireInfo): string {
         if (!isGlobalImport) {
             importFormattedAssignment = `{ ${importFormattedAssignment} }`;
         }
+    }
+
+    // remove .js extension
+    const firstChar = requirement.target[0];
+    if (REMOVE_JS_EXT && (firstChar === '.' || firstChar === '/')) {
+        requirement.target = requirement.target.replace(/\.js$/, '');
     }
 
     return `import ${importFormattedAssignment} from ${quote}${requirement.target}${quote};`;

@@ -52,6 +52,16 @@ describe('writer processor - imports', () => {
         expect(fileUpdate).to.deep.equal("import _ from 'lodash';");
     });
 
+    it('should strip .js extensions of local files', () => {
+        const fileContent = `const _lib = require('./myFile.js');`;
+        const requirements = getRequires(fileContent);
+        requirements[0].hasDefault = true;
+
+        const fileUpdate = rewriteImports(fileContent, requirements);
+
+        expect(fileUpdate).to.deep.equal("import _lib from './myFile';");
+    });
+
     it('should rewrite import with multiple keys', () => {
         const fileContent = `const {map,omit}=require('lodash');`;
         const requirements = getRequires(fileContent);
