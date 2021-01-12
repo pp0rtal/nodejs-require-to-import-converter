@@ -257,6 +257,32 @@ Object.assign(module.exports, {
                 });
             });
 
+            it('should parse hybrid inline instructions + keys with inline comments', () => {
+                const fileContent = `
+Object.assign(module.exports, {
+    identifiedAuthenticator: someConstructor(), // Some comment 
+    someConstant                                // comment
+});
+`;
+
+                const requirements = getExports(fileContent, true);
+
+                expect(requirements).to.deep.equal({
+                    global: {
+                        assignments: [
+                            {
+                                key: 'identifiedAuthenticator',
+                                value: 'someConstructor()',
+                            },
+                        ],
+                        exportedProperties: ['someConstant'],
+                        raw:
+                            'Object.assign(module.exports, {\n    identifiedAuthenticator: someConstructor(), // Some comment \n    someConstant                                // comment\n});\n',
+                    },
+                    inline: [],
+                });
+            });
+
             it('should parse various key declaration', () => {
                 const fileContent = `
 Object.assign(module.exports, {
@@ -486,7 +512,7 @@ console.log("Some use of " + module.exports.someVariable.total);`;
                     {
                         raw: 'module.exports.someVariable = ',
                         rawFullLine:
-                            'module.exports.someVariable = { total: 30,};',
+                            '\nmodule.exports.someVariable = { total: 30,};',
                         property: 'someVariable',
                     },
                 ],
@@ -495,7 +521,6 @@ console.log("Some use of " + module.exports.someVariable.total);`;
 
         it('should export multiples exported variables', () => {
             const fileContent = `
-// ...
 module.exports.someVariable = {
     total: 30,
 };
@@ -512,7 +537,7 @@ console.log("Some use of " + module.exports.someVariable.total);
                 inline: [
                     {
                         raw: 'module.exports.someVariable = ',
-                        rawFullLine: 'module.exports.someVariable = {',
+                        rawFullLine: '\nmodule.exports.someVariable = {',
                         property: 'someVariable',
                     },
                     {

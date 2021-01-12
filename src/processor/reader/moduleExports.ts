@@ -30,7 +30,7 @@ export function getExports(
     allowExperimental: boolean = false,
 ): ExportsInfo {
     const globalExports = getGlobalExports(content, allowExperimental);
-    const inlineExports = getInlineExports(content);
+    const inlineExports = getInlineExports(removeInlineComment(content));
 
     return {
         global: globalExports,
@@ -215,7 +215,7 @@ function parseInnerAdvancedExport(
     assignments: ExportsInfo['global']['assignments'];
     exportedProperties: ExportsInfo['global']['exportedProperties'];
 } {
-    const sanitizedContent = innerContent;
+    const sanitizedContent = removeInlineComment(innerContent);
     const containsAssignments = sanitizedContent.indexOf(':') !== -1;
     const assignmentsStr = sanitizedContent.split(
         containsAssignments ? /,\s*\n/ : ',',
@@ -229,9 +229,13 @@ function parseInnerAdvancedExport(
         if (twoDotsIndex === -1) {
             properties.push(assignmentStr.trim());
         } else {
+            const valueSanitized = removeInlineComment(
+                assignmentStr.substr(twoDotsIndex + 1).trim(),
+            );
+
             assignments.push({
                 key: assignmentStr.substr(0, twoDotsIndex).trim(),
-                value: assignmentStr.substr(twoDotsIndex + 1).trim(),
+                value: valueSanitized,
             });
         }
     });
@@ -240,6 +244,10 @@ function parseInnerAdvancedExport(
         assignments,
         exportedProperties: properties.filter((str) => str !== ''),
     };
+}
+
+function removeInlineComment(str: string): string {
+    return str.replace(/[ \t]*\/\/.*/g, '');
 }
 
 /**
@@ -350,4 +358,3 @@ function parseInnerMultilineAdvancedExport(
         exportedProperties: properties.map((str) => str.replace(/[^\w]/g, '')),
     };
 }
-
