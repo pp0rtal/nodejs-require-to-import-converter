@@ -287,6 +287,36 @@ Object.assign(module.exports, {
                 });
             });
 
+            it('should parse various key declaration with inline comments', () => {
+                const fileContent = `
+Object.assign(module.exports, {
+    call: someConstructor(), // Comment
+    str: "hello",//Comment
+    number: 42,  // Comment
+    myFn,        // Comment
+    inlineArray: ["...", "..."],  // Comment
+    someConstant // Comment
+});
+`;
+
+                const requirements = getExports(fileContent, true);
+
+                expect(requirements).to.deep.equal({
+                    global: {
+                        assignments: [
+                            { key: 'call', value: 'someConstructor()' },
+                            { key: 'str', value: '"hello"' },
+                            { key: 'number', value: '42' },
+                            { key: 'inlineArray', value: '["...", "..."]' },
+                        ],
+                        exportedProperties: ['myFn', 'someConstant'],
+                        raw:
+                            'Object.assign(module.exports, {\n    call: someConstructor(), // Comment\n    str: \"hello\",//Comment\n    number: 42,  // Comment\n    myFn,        // Comment\n    inlineArray: [\"...\", \"...\"],  // Comment\n    someConstant // Comment\n});\n',
+                    },
+                    inline: [],
+                });
+            });
+
             it('should parse multilines object/arrays declarations following tab size', () => {
                 const fileContent = `
 Object.assign(module.exports, {

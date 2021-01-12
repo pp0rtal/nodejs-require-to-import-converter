@@ -282,10 +282,11 @@ function parseInnerMultilineAdvancedExport(
     let multilineBlocBuffer = '';
     let multilineBlockProperty = '';
     lines.forEach((line) => {
+        const rawLine = line.replace(tab, ''); // tab to the left
+        line = line.replace(/\s*\/\/.*/, '');
         const parseAliasDeclaration = inlineNewAssign.exec(line);
         const parseDirectFunction = directFunction.exec(line);
 
-        line = line.replace(tab, ''); // tab to the left
         if (parseAliasDeclaration === null && parseDirectFunction === null) {
             if (multilineBlockProperty === '') {
                 if (/[^:,=(){}]/.test(line)) {
@@ -294,7 +295,7 @@ function parseInnerMultilineAdvancedExport(
                     throw new Error('inconsistency');
                 }
             } else {
-                multilineBlocBuffer += `\n${line}`;
+                multilineBlocBuffer += `\n${rawLine}`;
             }
         } else {
             // end of multiline declaration
@@ -349,3 +350,4 @@ function parseInnerMultilineAdvancedExport(
         exportedProperties: properties.map((str) => str.replace(/[^\w]/g, '')),
     };
 }
+
