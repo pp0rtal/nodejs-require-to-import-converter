@@ -51,9 +51,13 @@ export function getGlobalExports(
     const exportsAttributionRegex = /^ *(?:Object\.assign\(\s*)?module\.exports\s*[=,]([^{}=()\[\]]+)?\s*{([\s\S]*?)}\s*\)?;?\n?/m;
     const exportsAssignEllipsisOnly = /^ *Object\.assign\(\s*module\.exports\s*,([^{}=()\[\]]+)\);?\n?/m;
     const exportsAttributionRegexExperiment = /^ *(?:Object\.assign\(\s*)?module\.exports\s*[=,]\s*{([\s\S]*?)\n}\)?;?\n?/m; // Search for linebreak
-    const exportDirectAssignment = /^ *module\.exports\s*=\s*([^\s;]+);?\n?/m;
+    const exportMultilineDirectAssignment = /^module\.exports\s*=\s*([^\n]+{\n.*\n}[^\n]+)/m;
+    const exportDirectAssignment = /^module\.exports\s*=\s*([^\s;]+);?\n?/m;
 
     const parseDirectAssignment = exportDirectAssignment.exec(content);
+    const parseDirectMultilineAssignment = exportMultilineDirectAssignment.exec(
+        content,
+    );
     const parseAssignEllipsis = exportsAssignEllipsisOnly.exec(content);
     const parseAssign = exportsAttributionRegex.exec(content);
     const parseAssignExperiment = exportsAttributionRegexExperiment.exec(
@@ -61,11 +65,22 @@ export function getGlobalExports(
     );
 
     // Case: Direct assignment with no properties module.exports=VAR
-    if (parseDirectAssignment && !parseAssign) {
-        return {
-            raw: parseDirectAssignment[0],
-            directAssignment: parseDirectAssignment[1],
-        };
+    if (
+        (parseDirectAssignment || parseDirectMultilineAssignment) &&
+        !parseAssign
+    ) {
+        if (parseDirectMultilineAssignment) {
+            return {
+                raw: parseDirectMultilineAssignment[0],
+                directAssignment: parseDirectMultilineAssignment[1],
+            };
+        }
+        if (parseDirectAssignment) {
+            return {
+                raw: parseDirectAssignment[0],
+                directAssignment: parseDirectAssignment[1],
+            };
+        }
     }
 
     if (!parseAssign && parseAssignEllipsis) {

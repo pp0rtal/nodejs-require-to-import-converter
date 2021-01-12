@@ -114,6 +114,24 @@ module.exports = MyError;
             });
         });
 
+        it('should parse full module.export = multiline assignment', () => {
+            const fileContent = `
+module.exports = function (data) {
+    return u_xml2js.read(data).then(json => snTree(json.manifest));
+};
+`;
+
+            const requirements = getExports(fileContent);
+
+            expect(requirements).to.deep.equal({
+                global: {
+                    directAssignment: 'function (data) {\n    return u_xml2js.read(data).then(json => snTree(json.manifest));\n};',
+                    raw: 'module.exports = function (data) {\n    return u_xml2js.read(data).then(json => snTree(json.manifest));\n};',
+                },
+                inline: [],
+            });
+        });
+
         it('should parse full module.export with Object.assign()', () => {
             const fileContent = `
 Object.assign(module.exports, {
