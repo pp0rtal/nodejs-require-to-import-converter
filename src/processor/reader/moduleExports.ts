@@ -48,7 +48,7 @@ export function getGlobalExports(
     allowExperimental: boolean = false,
 ): GlobalExportedContent {
     const exportedContent: GlobalExportedContent = {};
-    const exportsAttributionRegex = /^ *(?:Object\.assign\(\s*)?module\.exports\s*[=,]([^{}=()\[\]]+)?\s*{([\s\S]*?)}\)?;?\n?/m;
+    const exportsAttributionRegex = /^ *(?:Object\.assign\(\s*)?module\.exports\s*[=,]([^{}=()\[\]]+)?\s*{([\s\S]*?)}\s*\)?;?\n?/m;
     const exportsAssignEllipsisOnly = /^ *Object\.assign\(\s*module\.exports\s*,([^{}=()\[\]]+)\);?\n?/m;
     const exportsAttributionRegexExperiment = /^ *(?:Object\.assign\(\s*)?module\.exports\s*[=,]\s*{([\s\S]*?)\n}\)?;?\n?/m; // Search for linebreak
     const exportDirectAssignment = /^ *module\.exports\s*=\s*([^\s;]+);?\n?/m;

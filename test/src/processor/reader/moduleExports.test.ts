@@ -30,6 +30,26 @@ describe('reader processor - module.exports', () => {
             });
         });
 
+        it('should parse multiline module.exports with Object.assign()', () => {
+            const fileContent =
+                `
+Object.assign(module.exports,
+    {
+        myFunction
+    }
+);`;
+
+            const requirements = getExports(fileContent);
+
+            expect(requirements).to.deep.equal({
+                global: {
+                    exportedProperties: ['myFunction'],
+                    raw: 'Object.assign(module.exports,\n    {\n        myFunction\n    }\n);',
+                },
+                inline: [],
+            });
+        });
+
         it('should parse inline module.exports with a function call', () => {
             const fileContent =
                 '\n\n\nObject.assign(module.exports, {myFunction})\n\n\n';
@@ -119,7 +139,7 @@ Object.assign(module.exports, {
 const config1 = { /* keys */ };
 const config2 = { /* keys */ };
 Object.assign(module.exports, 
-config1, 
+   config1, 
 config2, { lib });
 function lib(){}
 `;
@@ -129,7 +149,7 @@ function lib(){}
             expect(requirements).to.deep.equal({
                 global: {
                     exportedProperties: ['config1', 'config2', 'lib'],
-                    raw: 'Object.assign(module.exports, \nconfig1, \nconfig2, { lib });\n',
+                    raw: 'Object.assign(module.exports, \n   config1, \nconfig2, { lib });\n',
                 },
                 inline: [],
             });
@@ -195,7 +215,7 @@ Object.assign(module.exports, { identifiedAuthenticator: buildIdentifiedAuthenti
 
             it('should parse hybrid inline instructions + keys', () => {
                 const fileContent = `
-Object.assign(module.exports, { 
+Object.assign(module.exports, {
     identifiedAuthenticator: someConstructor(),
     someConstant
 });
@@ -213,7 +233,7 @@ Object.assign(module.exports, {
                         ],
                         exportedProperties: ['someConstant'],
                         raw:
-                            'Object.assign(module.exports, { \n    identifiedAuthenticator: someConstructor(),\n    someConstant\n});\n',
+                            'Object.assign(module.exports, {\n    identifiedAuthenticator: someConstructor(),\n    someConstant\n});\n',
                     },
                     inline: [],
                 });
@@ -221,7 +241,7 @@ Object.assign(module.exports, {
 
             it('should parse various key declaration', () => {
                 const fileContent = `
-Object.assign(module.exports, { 
+Object.assign(module.exports, {
     call: someConstructor(),
     str: "hello",
     number: 42,
@@ -243,7 +263,7 @@ Object.assign(module.exports, {
                         ],
                         exportedProperties: ['myFn', 'someConstant'],
                         raw:
-                            'Object.assign(module.exports, { \n    call: someConstructor(),\n    str: \"hello\",\n    number: 42,\n    myFn,\n    inlineArray: [\"...\", \"...\"],\n    someConstant\n});\n',
+                            'Object.assign(module.exports, {\n    call: someConstructor(),\n    str: \"hello\",\n    number: 42,\n    myFn,\n    inlineArray: [\"...\", \"...\"],\n    someConstant\n});\n',
                     },
                     inline: [],
                 });
@@ -251,9 +271,9 @@ Object.assign(module.exports, {
 
             it('should parse multilines object/arrays declarations following tab size', () => {
                 const fileContent = `
-Object.assign(module.exports, { 
+Object.assign(module.exports, {
     singleLine: buildFirebaseAdapter({ firebaseNative }),
-    multilineFn: async function (){ 
+    multilineFn: async function (){
         // some code,
         return {
             someKey: "value",
@@ -281,7 +301,7 @@ Object.assign(module.exports, {
                         ],
                         exportedProperties: [],
                         raw:
-                            'Object.assign(module.exports, { \n    singleLine: buildFirebaseAdapter({ firebaseNative }),\n    multilineFn: async function (){ \n        // some code,\n        return {\n            someKey: "value",\n            global\n        }\n    }\n});\n',
+                            'Object.assign(module.exports, {\n    singleLine: buildFirebaseAdapter({ firebaseNative }),\n    multilineFn: async function (){\n        // some code,\n        return {\n            someKey: \"value\",\n            global\n        }\n    }\n});\n',
                     },
                     inline: [],
                 });
@@ -289,7 +309,7 @@ Object.assign(module.exports, {
 
             it('should parse multilines function without alias', () => {
                 const fileContent = `
-Object.assign(module.exports, { 
+Object.assign(module.exports, {
     myInlineFunc () { return true },
     async myMultilineFunc(file) {
        // code
@@ -315,7 +335,7 @@ Object.assign(module.exports, {
                         ],
                         exportedProperties: [],
                         raw:
-                            'Object.assign(module.exports, { \n    myInlineFunc () { return true },\n    async myMultilineFunc(file) {\n       // code\n    }\n});\n',
+                            'Object.assign(module.exports, {\n    myInlineFunc () { return true },\n    async myMultilineFunc(file) {\n       // code\n    }\n});\n',
                     },
                     inline: [],
                 });
