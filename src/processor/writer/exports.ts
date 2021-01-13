@@ -267,7 +267,7 @@ function moveExportedAssignment(
     if (firstLine.includes(` ${assignment.key}(`)) {
         toInsert = `\nexport ${assignment.value}\n`;
     } else {
-        const parseFunctionProto = /^(.* function)\s*(\([\s\S]*)/g.exec(
+        const parseFunctionProto = /^(.*function)\s*(\([\s\S]*)/g.exec(
             assignment.value,
         );
         if (parseFunctionProto) {

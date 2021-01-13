@@ -414,9 +414,12 @@ export async function multilineFn(){
 Object.assign(module.exports, { 
     singleLine({ param }){ /* code */ },
     async function multilineFn (){ 
-    }
+    },
     async multilineFn2 (){ 
-    }
+    },
+    errorHandler: function (err, req, res, next) {
+        // Code
+    },
     multilineFn3 (){ 
     }
 });
@@ -434,6 +437,10 @@ export async function multilineFn(){
 }
 
 export async function multilineFn2(){ 
+}
+
+export function errorHandler(err, req, res, next) {
+    // Code
 }
 
 export function multilineFn3(){ 
