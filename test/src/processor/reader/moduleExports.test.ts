@@ -277,6 +277,35 @@ Object.assign(module.exports, {
                 });
             });
 
+            it('should parse hybrid inline instructions having an ellipsis', () => {
+                const fileContent = `
+Object.assign(module.exports,
+    lib,
+    questions, {
+        name: "value",
+        exportedConstant,
+    }   
+);
+`;
+
+                const requirements = getExports(fileContent, true);
+
+                expect(requirements).to.deep.equal({
+                    global: {
+                        assignments: [
+                            {
+                                key: 'name',
+                                value: '"value"',
+                            },
+                        ],
+                        exportedProperties: ['lib', 'questions', 'exportedConstant'],
+                        raw:
+                            'Object.assign(module.exports,\n    lib,\n    questions, {\n        name: \"value\",\n        exportedConstant,\n    }   \n);\n',
+                    },
+                    inline: [],
+                });
+            });
+
             it('should parse hybrid inline instructions + keys with inline comments', () => {
                 const fileContent = `
 Object.assign(module.exports, {
@@ -375,7 +404,8 @@ Object.assign(module.exports, {
             someKey: "value",
             global
         }
-    }
+    },
+
 });
 `;
 
@@ -397,7 +427,7 @@ Object.assign(module.exports, {
                         ],
                         exportedProperties: [],
                         raw:
-                            'Object.assign(module.exports, {\n    singleLine: buildFirebaseAdapter({ firebaseNative }),\n\n    // Lost comment\n    multilineFn: async function (){\n        // some code,\n        return {\n            someKey: \"value\",\n            global\n        }\n    }\n});\n',
+                            'Object.assign(module.exports, {\n    singleLine: buildFirebaseAdapter({ firebaseNative }),\n\n    // Lost comment\n    multilineFn: async function (){\n        // some code,\n        return {\n            someKey: \"value\",\n            global\n        }\n    },\n\n});\n',
                     },
                     inline: [],
                 });

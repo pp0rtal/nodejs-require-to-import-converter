@@ -157,9 +157,27 @@ export function getGlobalExports(
             exportedContent.exportedProperties = exportedProperties;
         }
     } else {
-        const exportedAttributes = parseInnerExportedMethods(innerRaw);
+        let exportedAttributes = parseInnerExportedMethods(innerRaw);
         exportedContent.raw = rawOuterExport;
+
+        // Ultimate sanitize function for basic assignments
+        const assignments: ExportsInfo['global']['assignments'] = [];
+        exportedAttributes = exportedAttributes.filter((attr) => {
+            const split = attr.split(':');
+            if (split.length === 2) {
+                assignments.push({
+                    key: split[0],
+                    value: split[1].trim(),
+                });
+                return false;
+            }
+            return true;
+        });
+
         exportedContent.exportedProperties = exportedAttributes;
+        if (assignments.length) {
+            exportedContent.assignments = assignments;
+        }
     }
 
     if (ellipsis) {
@@ -274,7 +292,7 @@ function parseInnerMultilineAdvancedExport(
     }
     const tab = tabParse[1];
     lines.forEach((line) => {
-        if (!line.startsWith(tab)) {
+        if (!line.startsWith(tab) && line !== '') {
             throw new Error('invalid tabulation level');
         }
     });
@@ -295,10 +313,12 @@ function parseInnerMultilineAdvancedExport(
         const parseAliasDeclaration = inlineNewAssign.exec(line);
         const parseDirectFunction = directFunction.exec(line);
 
-        if(line === '' && !multilineBlockProperty) {
+        if (line === '' && !multilineBlockProperty) {
             // comment out of block declaration are lost
-        }
-        else if (parseAliasDeclaration === null && parseDirectFunction === null) {
+        } else if (
+            parseAliasDeclaration === null &&
+            parseDirectFunction === null
+        ) {
             if (multilineBlockProperty === '') {
                 if (/[^:,=(){}]/.test(line)) {
                     properties.push(line.trim());
@@ -313,7 +333,7 @@ function parseInnerMultilineAdvancedExport(
             if (multilineBlockProperty) {
                 assignments.push({
                     key: multilineBlockProperty,
-                    value: multilineBlocBuffer,
+                    value: cleanMultilineAssignment(multilineBlocBuffer),
                 });
                 multilineBlockProperty = '';
                 multilineBlocBuffer = '';
@@ -351,7 +371,7 @@ function parseInnerMultilineAdvancedExport(
         } else {
             assignments.push({
                 key: multilineBlockProperty,
-                value: multilineBlocBuffer,
+                value: cleanMultilineAssignment(multilineBlocBuffer),
             });
         }
     }
@@ -360,4 +380,8 @@ function parseInnerMultilineAdvancedExport(
         assignments,
         exportedProperties: properties.map((str) => str.replace(/[^\w]/g, '')),
     };
+}
+
+function cleanMultilineAssignment(str: string): string {
+    return str.replace(/,[\n\s]*$/g, '');
 }
