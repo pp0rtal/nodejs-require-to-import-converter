@@ -448,5 +448,39 @@ export function multilineFn3(){
 `,
             );
         });
+
+        it('should export functions containing function callback', () => {
+            const fileContent = `
+Object.assign(module.exports, { 
+    async function test1 (function(){ 
+        // Inside callback
+    }) {
+        // In test1
+    },
+
+    send: µ.test2(async function (opts) {
+        // Inside callback
+    }),
+});
+`;
+            const exports = getExports(fileContent, true);
+
+            const fileUpdate = rewriteExports(fileContent, exports);
+
+            expect(fileUpdate).to.deep.equal(
+                `
+
+export async function test1(function(){ 
+    // Inside callback
+}) {
+    // In test1
+}
+
+export const send = µ.test2(async function (opts) {
+    // Inside callback
+});
+`,
+            );
+        });
     });
 });
