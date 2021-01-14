@@ -67,7 +67,7 @@ export function getGlobalExports(
     const exportsAttributionRegexExperiment = /^ *(?:module\.)?exports\s*=\s*{([\s\S]*?)\n}?;?\n?/m;
     const exportsAssignRegexExperiment = /^ *(?:(?:(?:Object\.assign)|(?:_\.extend)|(?:_\.assign))\(\s*)(?:module\.)?exports\s*,\s*{([\s\S]*?)\n}\);?\n?/m;
 
-    const exportMultilineDirectEqual = /^(?:module\.)?exports\s*=\s*([^\n]+{\n.*\n}[^\n]+)/m;
+    const exportMultilineDirectEqual = /^(?:module\.)?exports\s*=\s*([^\n]+{\n[\w\W]*\n}[^\n]*)/m;
     const exportDirectEqual = /^(?:module\.)?exports\s*=\s*([^\s;]+);?\n?/m;
 
     // Execute regex
@@ -85,7 +85,7 @@ export function getGlobalExports(
 
     // Case: Direct assignment with no properties module.exports=VAR
     const isMoreLikelyDirectEqual =
-        parseAssign && /^class /.test(parseAssign[1].trim());
+        parseAssign && /^(class)|(async)|(\(\)) /.test(parseAssign[1].trim());
     if (parseDirectEqual || parseDirectMultiEqual || isMoreLikelyDirectEqual) {
         let raw, directAssignment;
 

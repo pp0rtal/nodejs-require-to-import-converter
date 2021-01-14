@@ -81,12 +81,14 @@ function rewriteGlobalExport(
         });
     }
 
-    const globalRawPosition = content.indexOf(globalExports.raw);
-    if (globalRawPosition === -1) {
-        // May never happen
-        console.warn(`⚠️cannot find raw export\n${globalExports.raw}`);
-    } else {
-        content = content.replace(globalExports.raw, '');
+    if(!globalExports.directAssignment){
+        const globalRawPosition = content.indexOf(globalExports.raw);
+        if (globalRawPosition === -1) {
+            // May never happen
+            console.warn(`⚠️cannot find raw export\n${globalExports.raw}`);
+        } else {
+            content = content.replace(globalExports.raw, '');
+        }
     }
 
     return content;

@@ -155,7 +155,7 @@ module.exports = function (data) {
             });
         });
 
-        it('should parse full module.export = single line definition', () => {
+        it('should parse full module.export = class', () => {
             const fileContent =
                 'module.exports = class AttemptException extends Error {};';
 
@@ -167,6 +167,25 @@ module.exports = function (data) {
                         'class AttemptException extends Error {};',
                     raw:
                         'module.exports = class AttemptException extends Error {};',
+                },
+                inline: [],
+            });
+        });
+
+        it('should parse full module.export = arrow function', () => {
+            const fileContent =
+                `module.exports = async () => {
+    // code
+};`;
+
+            const requirements = getExports(fileContent);
+
+            expect(requirements).to.deep.equal({
+                global: {
+                    directAssignment:
+                        'async () => {\n    // code\n};',
+                    raw:
+                        'module.exports = async () => {\n    // code\n};',
                 },
                 inline: [],
             });
@@ -563,7 +582,7 @@ Object.assign(module.exports, {
                 const loggerWarnSpy = sandbox.spy(console, 'warn');
                 const fileContent = `
 Object.assign(module.exports, {
-    udemyExternalFields: [
+    uExternalFields: [
         "categories",
         "description",
     ]
@@ -579,7 +598,7 @@ Object.assign(module.exports, {
                 expect(loggerWarnSpy).to.be.calledOnceWithExactly(
                     `⚠ module.exports contains direct declarations (try "experimental" mode)
 
-    udemyExternalFields: [
+    uExternalFields: [
         "categories",
         "description",
     ]
