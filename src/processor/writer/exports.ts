@@ -165,12 +165,13 @@ function replacePropertyDeclaration(
 
         const findExportRegex = new RegExp(
             isEllipsis
-                ? `^export \\* as ${escapeRegExp(property)} from .*$`
-                : `^export ([^;])*?[\\s{,]${escapeRegExp(
-                      property,
-                  )}([,\\s}][^;])*?from.*$`,
+                ? `^export \\* as_ ${escapeRegExp(property)} from .*$`
+                : `^export ([^;]*)?[\\s{,]${escapeRegExp(
+                property,
+                )}[,\\s}][^;]*?from.*$`,
             'm',
         );
+
 
         const importDeclaration = findImportRegex.exec(fileContent);
         const exportDeclaration = findExportRegex.exec(fileContent);

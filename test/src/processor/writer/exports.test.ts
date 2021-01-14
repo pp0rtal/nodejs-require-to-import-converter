@@ -414,6 +414,35 @@ export const someAlias = someConstant;
             expect(loggerWarnSpy).to.not.be.called;
         });
 
+        it('should export constants and direct multiline exports', () => {
+            const loggerWarnSpy = sandbox.spy(console, 'warn');
+            const fileContent = `
+import {
+    someFn1,
+    someFn2
+} from './package'
+
+Object.assign(module.exports, { 
+    someFn1,
+    someFn2,
+});
+`;
+            const exports = getExports(fileContent, true);
+
+            const fileUpdate = rewriteExports(fileContent, exports);
+
+            expect(fileUpdate).to.deep.equal(
+                `
+export {
+    someFn1,
+    someFn2
+} from './package'
+
+`,
+            );
+            expect(loggerWarnSpy).to.not.be.called;
+        });
+
         it('should warn if direct export is not found', () => {
             const loggerWarnSpy = sandbox.spy(console, 'warn');
             const fileContent = `
