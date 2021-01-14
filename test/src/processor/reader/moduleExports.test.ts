@@ -155,6 +155,23 @@ module.exports = function (data) {
             });
         });
 
+        it('should parse full module.export = single line definition', () => {
+            const fileContent =
+                'module.exports = class AttemptException extends Error {};';
+
+            const requirements = getExports(fileContent);
+
+            expect(requirements).to.deep.equal({
+                global: {
+                    directAssignment:
+                        'class AttemptException extends Error {};',
+                    raw:
+                        'module.exports = class AttemptException extends Error {};',
+                },
+                inline: [],
+            });
+        });
+
         it('should parse full module.export with Object.assign()', () => {
             const fileContent = `
 Object.assign(module.exports, {
@@ -175,7 +192,28 @@ Object.assign(module.exports, {
             });
         });
 
-        it('should parse ellipsis members in Object.assign', () => {
+        it('should parse assigned with ... ellipsis members in Object.assign', () => {
+            const fileContent = `
+const lib1 = require('./lib1');
+const lib2 = require('./lib2');
+const someFn = require('./file');
+module.exports = { ...lib1, ...lib2, someFn};
+
+`;
+
+            const requirements = getExports(fileContent);
+
+            expect(requirements).to.deep.equal({
+                global: {
+                    exportedKeySets: ['lib1', 'lib2'],
+                    exportedProperties: ['someFn'],
+                    raw: 'module.exports = { ...lib1, ...lib2, someFn};\n',
+                },
+                inline: [],
+            });
+        });
+
+        it('should parse ellipsis members in multiline Object.assign', () => {
             const fileContent = `
 const config1 = { /* keys */ };
 const config2 = { /* keys */ };
@@ -189,7 +227,8 @@ function lib(){}
 
             expect(requirements).to.deep.equal({
                 global: {
-                    exportedProperties: ['config1', 'config2', 'lib'],
+                    exportedKeySets: ['config1', 'config2'],
+                    exportedProperties: ['lib'],
                     raw:
                         'Object.assign(module.exports, \n   config1, \nconfig2, { lib });\n',
                 },
@@ -210,7 +249,8 @@ config2 );
 
             expect(requirements).to.deep.equal({
                 global: {
-                    exportedProperties: ['config1', 'config2'],
+                    exportedKeySets: ['config1', 'config2'],
+                    exportedProperties: [],
                     raw:
                         'Object.assign(module.exports, \nconfig1, \nconfig2 );\n',
                 },
@@ -303,11 +343,8 @@ Object.assign(module.exports,
                                 value: '"value"',
                             },
                         ],
-                        exportedProperties: [
-                            'lib',
-                            'questions',
-                            'exportedConstant',
-                        ],
+                        exportedKeySets: ['lib', 'questions'],
+                        exportedProperties: ['exportedConstant'],
                         raw:
                             'Object.assign(module.exports,\n    lib,\n    questions, {\n        name: "value",\n        exportedConstant,\n    }   \n);\n',
                     },

@@ -7,9 +7,6 @@ import { getExports } from '../../../../src/processor/reader/moduleExports';
 import { getRequires } from '../../../../src/processor/reader/requires';
 import { rewriteImports } from '../../../../src/processor/writer/imports';
 
-// TODO test assignment
-// TODO test assignemnts
-
 chai.use(sinonChai);
 const expect = chai.expect;
 
@@ -103,8 +100,7 @@ export {
     it('should rewrite export ellipsis of imported libs', () => {
         const fileContent = `
 const lib1 = require("./lib1");
-const { fn } = require('./lib2')
-module.exports = { ...lib1, fn};
+module.exports = { ...lib1};
 `;
         const exports = getExports(fileContent);
         const requirements = getRequires(fileContent);
@@ -114,11 +110,26 @@ module.exports = { ...lib1, fn};
 
         expect(fileUpdate).to.deep.equal(`
 export * from "./lib1";
-export { fn } from './lib2';
 `);
     });
 
-    it('should rewrite export assignments on a detached single function', () => {
+    it('should rewrite direct export all keys of a file', () => {
+        const fileContent = `
+const integrationsInterface = require("./integrationsInterface");
+Object.assign(module.exports, integrationsInterface);
+`;
+        const exports = getExports(fileContent);
+        const requirements = getRequires(fileContent);
+
+        let fileUpdate = rewriteImports(fileContent, requirements);
+        fileUpdate = rewriteExports(fileUpdate, exports);
+
+        expect(fileUpdate).to.deep.equal(`
+export * from "./integrationsInterface";
+`);
+    });
+
+    it('should rewrite export direct assignment on a detached single function', () => {
         const fileContent = `
 function myMethod () {}
 module.exports = myMethod;
@@ -130,6 +141,35 @@ module.exports = myMethod;
         expect(fileUpdate).to.deep.equal(`
 export default function myMethod () {}
 `);
+    });
+
+    it('should rewrite export direct assignment on a full function definition', () => {
+        const fileContent = `
+module.exports = async () => {
+    const sessions = await _db.programSessions.find({ sharingInfo: $ex });
+});
+`;
+        const exports = getExports(fileContent);
+
+        const fileUpdate = rewriteExports(fileContent, exports);
+
+        expect(fileUpdate).to.deep.equal(`
+export default async () => {
+    const sessions = await _db.programSessions.find({ sharingInfo: $ex });
+});
+`);
+    });
+
+    it('should rewrite export direct assignment on a single line definition', () => {
+        const fileContent =
+            'module.exports = class AttemptException extends Error {};';
+        const exports = getExports(fileContent);
+
+        const fileUpdate = rewriteExports(fileContent, exports);
+
+        expect(fileUpdate).to.deep.equal(
+            'export default class AttemptException extends Error {};',
+        );
     });
 
     it('should rewrite direct multiline export', () => {

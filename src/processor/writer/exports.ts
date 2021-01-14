@@ -43,7 +43,7 @@ function rewriteGlobalExport(
             content = replacePropertyDeclaration(
                 content,
                 globalExports.directAssignment,
-                true,
+                { isDefault: true },
             );
         }
     }
@@ -60,6 +60,14 @@ function rewriteGlobalExport(
             } else {
                 content = replacePropertyDeclaration(content, property);
             }
+        });
+    }
+
+    if (globalExports.exportedKeySets) {
+        globalExports.exportedKeySets.forEach((property) => {
+            content = replacePropertyDeclaration(content, property, {
+                isKeySet: true,
+            });
         });
     }
 
@@ -88,21 +96,17 @@ function rewriteGlobalExport(
  * Update const / function / class declaration using export keyword
  * @param content
  * @param assignment
- * @param defaultExport
+ * @param options
  */
 function replacePropertyDeclaration(
     content: string,
     assignment: string,
-    defaultExport: boolean = false,
+    options: { isDefault?: boolean; isKeySet?: boolean } = {},
 ): string {
-    const isEllipsis = assignment.startsWith('...');
-    if (isEllipsis) {
-        assignment = assignment.substr(3);
-    }
     const rawPropertyImport = findPropertyImport(
         content,
         assignment,
-        isEllipsis,
+        options.isKeySet,
     );
 
     // Already exported with another key
@@ -118,13 +122,13 @@ function replacePropertyDeclaration(
         );
     }
     if (rawPropertyDeclaration) {
-        const defaultKey = defaultExport ? 'default ' : '';
+        const defaultKey = options.isDefault ? 'default ' : '';
         content = content.replace(
             rawPropertyDeclaration,
             `export ${defaultKey}${rawPropertyDeclaration}`,
         );
     } else if (rawPropertyImport) {
-        const updatedImport = isEllipsis
+        const updatedImport = options.isKeySet
             ? rawPropertyImport.replace(
                   `import * as ${assignment} `,
                   `export * `,
@@ -145,7 +149,7 @@ function replacePropertyDeclaration(
     function findPropertyImport(
         fileContent: string,
         property: string,
-        isEllipsis: boolean,
+        isEllipsis: boolean = false,
     ): string | null | true {
         const findImportRegex = new RegExp(
             isEllipsis
@@ -158,7 +162,7 @@ function replacePropertyDeclaration(
 
         const findExportRegex = new RegExp(
             isEllipsis
-                ? `^export \\* as ${escapeRegExp(property)} from .*$`
+                ? `^export \\* as_ ${escapeRegExp(property)} from .*$`
                 : `^export [\\s\\S]*[\\s{,]${escapeRegExp(
                       property,
                   )}[,\\s}][\\s\\S]*from.*$`,

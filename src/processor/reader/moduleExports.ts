@@ -13,6 +13,7 @@ export type ExportsInfo = {
         directAssignment?: string;
         assignments?: Assignment[];
         raw?: string;
+        exportedKeySets?: string[];
         exportedProperties?: string[];
     };
     inline: Array<{
@@ -66,15 +67,14 @@ export function getGlobalExports(
     const exportsAttributionRegexExperiment = /^ *(?:module\.)?exports\s*=\s*{([\s\S]*?)\n}?;?\n?/m;
     const exportsAssignRegexExperiment = /^ *(?:(?:(?:Object\.assign)|(?:_\.extend)|(?:_\.assign))\(\s*)(?:module\.)?exports\s*,\s*{([\s\S]*?)\n}\);?\n?/m;
 
-    const exportMultilineDirectAssignment = /^(?:module\.)?exports\s*=\s*([^\n]+{\n.*\n}[^\n]+)/m;
-    const exportDirectAssignment = /^(?:module\.)?exports\s*=\s*([^\s;]+);?\n?/m;
+    const exportMultilineDirectEqual = /^(?:module\.)?exports\s*=\s*([^\n]+{\n.*\n}[^\n]+)/m;
+    const exportDirectEqual = /^(?:module\.)?exports\s*=\s*([^\s;]+);?\n?/m;
 
     // Execute regex
-    const parseDirectEqual = exportDirectAssignment.exec(content);
-    const parseDirectMultiEqual = exportMultilineDirectAssignment.exec(content);
+    const parseDirectEqual = exportDirectEqual.exec(content);
+    const parseDirectMultiEqual = exportMultilineDirectEqual.exec(content);
 
     const parseObjectEllipsisAssign = exportsAssignEllipsisOnly.exec(content);
-
     const parseObjectEqual = exportsAttributionRegex.exec(content);
     const parseObjectEqualAssign = exportsAssignAttributionRegex.exec(content);
     const parseObjectEqualExp = exportsAttributionRegexExperiment.exec(content);
@@ -84,18 +84,22 @@ export function getGlobalExports(
     const parseAssign = parseObjectEqualAssign || parseObjectEqual;
 
     // Case: Direct assignment with no properties module.exports=VAR
-    if ((parseDirectEqual || parseDirectMultiEqual) && !parseAssign) {
-        if (parseDirectMultiEqual) {
-            return {
-                raw: parseDirectMultiEqual[0],
-                directAssignment: parseDirectMultiEqual[1],
-            };
+    const isMoreLikelyDirectEqual =
+        parseAssign && /^class /.test(parseAssign[1].trim());
+    if (parseDirectEqual || parseDirectMultiEqual || isMoreLikelyDirectEqual) {
+        let raw, directAssignment;
+
+        if (isMoreLikelyDirectEqual && parseAssign) {
+            // Regex are far from being perfect :/
+            raw = parseAssign[0];
+            directAssignment = raw.replace(/^.*?=\s*/, '');
+        } else {
+            [raw, directAssignment] =
+                parseDirectMultiEqual || parseDirectEqual || [];
         }
-        if (parseDirectEqual) {
-            return {
-                raw: parseDirectEqual[0],
-                directAssignment: parseDirectEqual[1],
-            };
+
+        if (isMoreLikelyDirectEqual || !parseAssign) {
+            return { raw, directAssignment };
         }
     }
 
@@ -103,9 +107,10 @@ export function getGlobalExports(
         const { exportedProperties } = parseInnerAdvancedExport(
             parseObjectEllipsisAssign[1],
         );
-        exportedContent.exportedProperties = (exportedProperties || []).concat(
-            exportedContent.exportedProperties || [],
-        );
+        if (exportedProperties) {
+            exportedContent.exportedKeySets = exportedProperties;
+        }
+        exportedContent.exportedProperties = [];
         exportedContent.raw = parseObjectEllipsisAssign[0];
         return exportedContent;
     }
@@ -173,12 +178,12 @@ export function getGlobalExports(
             exportedContent.exportedProperties = exportedProperties;
         }
     } else {
-        let exportedAttributes = parseInnerExportedMethods(innerRaw);
+        let exportedStr = parseInnerExportedMethods(innerRaw);
         exportedContent.raw = rawOuterExport;
 
         // Ultimate sanitize function for basic assignments
         const assignments: ExportsInfo['global']['assignments'] = [];
-        exportedAttributes = exportedAttributes.filter((attr) => {
+        exportedStr = exportedStr.filter((attr) => {
             const split = attr.split(':');
             if (split.length === 2) {
                 assignments.push({
@@ -190,7 +195,18 @@ export function getGlobalExports(
             return true;
         });
 
-        exportedContent.exportedProperties = exportedAttributes;
+        // Filter out ...keys
+        const exportedProperties = exportedStr.filter(
+            (str) => !str.startsWith('...'),
+        );
+        const exportedKeySets = exportedStr
+            .filter((str) => str.startsWith('...'))
+            .map((str) => str.substr(3));
+
+        if (exportedProperties.length)
+            exportedContent.exportedProperties = exportedProperties;
+        if (exportedKeySets.length)
+            exportedContent.exportedKeySets = exportedKeySets;
         if (assignments.length) {
             exportedContent.assignments = assignments;
         }
@@ -198,9 +214,9 @@ export function getGlobalExports(
 
     if (ellipsis) {
         const { exportedProperties } = parseInnerAdvancedExport(ellipsis);
-        exportedContent.exportedProperties = (exportedProperties || []).concat(
-            exportedContent.exportedProperties || [],
-        );
+        if (exportedProperties && exportedProperties.length) {
+            exportedContent.exportedKeySets = exportedProperties;
+        }
     }
 
     return exportedContent;
@@ -256,27 +272,34 @@ function parseInnerAdvancedExport(
     );
 
     const assignments: ExportsInfo['global']['assignments'] = [];
-    const properties: ExportsInfo['global']['exportedProperties'] = [];
+    const exportedProperties: ExportsInfo['global']['exportedProperties'] = [];
 
     assignmentsStr.forEach((assignmentStr) => {
+        assignmentStr = assignmentStr.trim();
         const twoDotsIndex = assignmentStr.indexOf(':');
         if (twoDotsIndex === -1) {
-            properties.push(assignmentStr.trim());
+            if (assignmentStr !== '') {
+                exportedProperties.push(assignmentStr.trim());
+            }
         } else {
             const valueSanitized = removeInlineComment(
                 assignmentStr.substr(twoDotsIndex + 1).trim(),
             );
 
-            assignments.push({
-                key: assignmentStr.substr(0, twoDotsIndex).trim(),
-                value: valueSanitized,
-            });
+            if (valueSanitized) {
+                assignments.push({
+                    key: assignmentStr.substr(0, twoDotsIndex).trim(),
+                    value: valueSanitized,
+                });
+            }
         }
     });
 
+    exportedProperties.filter((str) => str !== '');
+
     return {
         assignments,
-        exportedProperties: properties.filter((str) => str !== ''),
+        exportedProperties,
     };
 }
 
