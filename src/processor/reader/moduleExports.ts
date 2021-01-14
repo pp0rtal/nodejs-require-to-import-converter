@@ -1,12 +1,17 @@
 // Relative to module.export() parsing
 
+import { log } from 'util';
+
+export type Assignment = {
+    key: string;
+    value: string;
+    comment?: string;
+};
+
 export type ExportsInfo = {
     global: {
         directAssignment?: string;
-        assignments?: Array<{
-            key: string;
-            value: string;
-        }>;
+        assignments?: Assignment[];
         raw?: string;
         exportedProperties?: string[];
     };
@@ -48,49 +53,60 @@ export function getGlobalExports(
     allowExperimental: boolean = false,
 ): GlobalExportedContent {
     const exportedContent: GlobalExportedContent = {};
-    const exportsAttributionRegex = /^ *(?:(?:(?:Object\.assign)|(?:_\.extend)|(?:_\.assign))\(\s*)?(?:module\.)?exports\s*[=,]([^{}=()\[\]]+)?\s*{([\s\S]*?)}\s*\)?;?\n?/m;
+
+    // Search for exports={} and assign(exports, {...});
+    const exportsAttributionRegex = /^ *(?:module\.)?exports\s*=([^{}=()\[\]]+)?\s*{([\s\S]*?)}\s*;?\n?/m;
+    const exportsAssignAttributionRegex = /^ *(?:(?:(?:Object\.assign)|(?:_\.extend)|(?:_\.assign))\(\s*)(?:module\.)?exports\s*,([^{}=()\[\]]+)?\s*{([\s\S]*?)}\s*\);?\n?/m;
+
+    // Search for assign(exports, var, var, var);
     const exportsAssignEllipsisOnly = /^ *(?:(?:Object\.assign)|(?:_\.extend)|(?:_\.assign))\(\s*(?:module\.)?exports\s*,([^{}=()\[\]]+)\);?\n?/m;
-    const exportsAttributionRegexExperiment = /^ *(?:(?:(?:Object\.assign)|(?:_\.extend)|(?:_\.assign))\(\s*)?(?:module\.)?exports\s*[=,]\s*{([\s\S]*?)\n}\)?;?\n?/m; // Search for linebreak
+
+    // Similar to above but with a little trick:
+    // RELYING ON   \n})
+    const exportsAttributionRegexExperiment = /^ *(?:module\.)?exports\s*=\s*{([\s\S]*?)\n}?;?\n?/m;
+    const exportsAssignRegexExperiment = /^ *(?:(?:(?:Object\.assign)|(?:_\.extend)|(?:_\.assign))\(\s*)(?:module\.)?exports\s*,\s*{([\s\S]*?)\n}\);?\n?/m;
+
     const exportMultilineDirectAssignment = /^(?:module\.)?exports\s*=\s*([^\n]+{\n.*\n}[^\n]+)/m;
     const exportDirectAssignment = /^(?:module\.)?exports\s*=\s*([^\s;]+);?\n?/m;
 
-    const parseDirectAssignment = exportDirectAssignment.exec(content);
-    const parseDirectMultilineAssignment = exportMultilineDirectAssignment.exec(
-        content,
-    );
-    const parseAssignEllipsis = exportsAssignEllipsisOnly.exec(content);
-    const parseAssign = exportsAttributionRegex.exec(content);
-    const parseAssignExperiment = exportsAttributionRegexExperiment.exec(
-        content,
-    );
+    // Execute regex
+    const parseDirectEqual = exportDirectAssignment.exec(content);
+    const parseDirectMultiEqual = exportMultilineDirectAssignment.exec(content);
+
+    const parseObjectEllipsisAssign = exportsAssignEllipsisOnly.exec(content);
+
+    const parseObjectEqual = exportsAttributionRegex.exec(content);
+    const parseObjectEqualAssign = exportsAssignAttributionRegex.exec(content);
+    const parseObjectEqualExp = exportsAttributionRegexExperiment.exec(content);
+    const parseObjectAssignExp = exportsAssignRegexExperiment.exec(content);
+
+    const parseAssignExperiment = parseObjectAssignExp || parseObjectEqualExp;
+    const parseAssign = parseObjectEqualAssign || parseObjectEqual;
 
     // Case: Direct assignment with no properties module.exports=VAR
-    if (
-        (parseDirectAssignment || parseDirectMultilineAssignment) &&
-        !parseAssign
-    ) {
-        if (parseDirectMultilineAssignment) {
+    if ((parseDirectEqual || parseDirectMultiEqual) && !parseAssign) {
+        if (parseDirectMultiEqual) {
             return {
-                raw: parseDirectMultilineAssignment[0],
-                directAssignment: parseDirectMultilineAssignment[1],
+                raw: parseDirectMultiEqual[0],
+                directAssignment: parseDirectMultiEqual[1],
             };
         }
-        if (parseDirectAssignment) {
+        if (parseDirectEqual) {
             return {
-                raw: parseDirectAssignment[0],
-                directAssignment: parseDirectAssignment[1],
+                raw: parseDirectEqual[0],
+                directAssignment: parseDirectEqual[1],
             };
         }
     }
 
-    if (!parseAssign && parseAssignEllipsis) {
+    if (!parseAssign && parseObjectEllipsisAssign) {
         const { exportedProperties } = parseInnerAdvancedExport(
-            parseAssignEllipsis[1],
+            parseObjectEllipsisAssign[1],
         );
         exportedContent.exportedProperties = (exportedProperties || []).concat(
             exportedContent.exportedProperties || [],
         );
-        exportedContent.raw = parseAssignEllipsis[0];
+        exportedContent.raw = parseObjectEllipsisAssign[0];
         return exportedContent;
     }
 
@@ -298,47 +314,75 @@ function parseInnerMultilineAdvancedExport(
     });
 
     // Check each line for key declaration or direct function declaration
-    const inlineNewAssign = new RegExp(
-        `^${tab}([^\\s:,?(){}="']+)\\s*:\\s*(.*?)(,?)\\s*$`,
-    );
-    const directFunction = new RegExp(
-        `^${tab}((?:async\\s+)?(?:function\\s+)?)([^\\s:,?(){}="']+)\\s*(\\(.*?)(,?)$`,
-    );
+    const inlineNewAssign = /^([^\s:,?(){}="']+)\s*:\s*(.*?)(,?)\s*$/;
+    const directFunction = /((?:async\s+)?(?:function\s+)?)([^\s:,?(){}="']+)\s*(\(.*?)(,?)$/;
 
-    let multilineBlocBuffer = '';
-    let multilineBlockProperty = '';
+    // Comment state
+    let inMultilineComment = false;
+    let multilineCommentBuffer = '';
+
+    // Function state
+    let blocBuffer = '';
+    let blockProperty = '';
+
+    // Handle function / comment state line by line
     lines.forEach((line) => {
-        const rawLine = line.replace(tab, ''); // tab to the left
-        line = line.replace(/\s*\/\/.*/, '');
-        const parseAliasDeclaration = inlineNewAssign.exec(line);
-        const parseDirectFunction = directFunction.exec(line);
+        const paddedLine = line.replace(tab, ''); // tab to the left
+        const paddedLineWithoutComment = paddedLine.replace(/\s*\/\/.*$/, '');
+        const isInlineComment = /^\s*\/\/.*/.test(paddedLine);
+        const isMultilineCommentStart = /^\/\*/.test(paddedLine);
+        const isMultilineCommentEnd = /^\s\*\//.test(paddedLine);
+        const isEndOfDefinition =
+            /^[})]/.test(paddedLine) && !paddedLineWithoutComment.endsWith('{');
+        const isEndOfAssignment = blockProperty && isEndOfDefinition;
 
-        if (line === '' && !multilineBlockProperty) {
-            // comment out of block declaration are lost
-        } else if (
+        if (isEndOfAssignment) {
+            blocBuffer += `\n${paddedLine}`;
+            assignments.push(flushAssignment());
+        }
+
+        // Handle multiline comment state
+        let isCommentLine =
+            !blockProperty &&
+            (inMultilineComment ||
+                isInlineComment ||
+                isMultilineCommentStart ||
+                isMultilineCommentEnd);
+
+        if (isCommentLine) {
+            const isStart = multilineCommentBuffer;
+            multilineCommentBuffer += `${isStart ? '\n' : ''}${paddedLine}`;
+            if (isMultilineCommentStart) inMultilineComment = true;
+            if (isMultilineCommentEnd) inMultilineComment = false;
+        }
+        if (isMultilineCommentStart && blockProperty) {
+            assignments.push(flushAssignment());
+        }
+
+        const parseAliasDeclaration = inlineNewAssign.exec(
+            paddedLineWithoutComment,
+        );
+        const parseDirectFunction = directFunction.exec(
+            paddedLineWithoutComment,
+        );
+
+        if (
+            !isCommentLine &&
+            !isEndOfAssignment &&
             parseAliasDeclaration === null &&
             parseDirectFunction === null
         ) {
-            if (multilineBlockProperty === '') {
-                if (/[^:,=(){}]/.test(line)) {
-                    properties.push(line.trim());
-                } else {
+            if (blockProperty === '') {
+                if (/[^:,=(){}]/.test(paddedLineWithoutComment)) {
+                    properties.push(paddedLineWithoutComment.trim());
+                } else if (!isCommentLine && /[^\s]/.test(line)) {
                     throw new Error('inconsistency');
                 }
             } else {
-                multilineBlocBuffer += `\n${rawLine}`;
+                blocBuffer += `\n${paddedLine}`;
             }
-        } else {
-            // end of multiline declaration
-            if (multilineBlockProperty) {
-                assignments.push({
-                    key: multilineBlockProperty,
-                    value: cleanMultilineAssignment(multilineBlocBuffer),
-                });
-                multilineBlockProperty = '';
-                multilineBlocBuffer = '';
-            }
-
+        } else if (!isEndOfAssignment && !isCommentLine) {
+            // Allow empty line
             let key, rightLine, hasComma;
             if (parseAliasDeclaration === null && parseDirectFunction) {
                 // Handle direct function declaration
@@ -359,27 +403,40 @@ function parseInnerMultilineAdvancedExport(
                     value: rightLine,
                 });
             } else {
-                multilineBlockProperty = key;
-                multilineBlocBuffer = rightLine;
+                blockProperty = key;
+                blocBuffer = rightLine;
             }
         }
     });
 
-    if (multilineBlocBuffer && multilineBlocBuffer.trim()) {
-        if (!multilineBlockProperty) {
-            properties.push(multilineBlocBuffer.trim());
+    if (blocBuffer && blocBuffer.trim()) {
+        if (!blockProperty) {
+            properties.push(blocBuffer.trim());
         } else {
-            assignments.push({
-                key: multilineBlockProperty,
-                value: cleanMultilineAssignment(multilineBlocBuffer),
-            });
+            assignments.push(flushAssignment());
         }
     }
 
     return {
         assignments,
-        exportedProperties: properties.map((str) => str.replace(/[^\w]/g, '')),
+        exportedProperties: properties
+            .map((str) => str.replace(/[^\w]/g, ''))
+            .filter((str) => str.length),
     };
+
+    function flushAssignment() {
+        const newAssignment: Assignment = {
+            key: blockProperty,
+            value: cleanMultilineAssignment(blocBuffer),
+        };
+        if (multilineCommentBuffer) {
+            newAssignment.comment = multilineCommentBuffer;
+        }
+        multilineCommentBuffer = '';
+        blockProperty = '';
+        blocBuffer = '';
+        return newAssignment;
+    }
 }
 
 function cleanMultilineAssignment(str: string): string {

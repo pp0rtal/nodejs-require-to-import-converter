@@ -1,4 +1,4 @@
-import { ExportsInfo } from '../reader/moduleExports';
+import { Assignment, ExportsInfo } from '../reader/moduleExports';
 import { escapeRegExp } from 'tslint/lib/utils';
 import { insertBeforeSearch } from '../../utils/string';
 
@@ -37,10 +37,8 @@ function rewriteGlobalExport(
         );
 
         if (isDirectDeclaration) {
-            content = content.replace(
-                globalExports.raw,
-                `export default ${globalExports.directAssignment}`,
-            );
+            const functionDefinition = `export default ${globalExports.directAssignment}`;
+            content = content.replace(globalExports.raw, functionDefinition);
         } else {
             content = replacePropertyDeclaration(
                 content,
@@ -255,27 +253,26 @@ function rewriteInlineExports(
 function moveExportedAssignment(
     fileContent: string,
     rawExport: string = '',
-    assignment: {
-        key: string;
-        value: string;
-    },
+    assignment: Assignment,
 ): string {
     const firstLine = assignment.value.split('\n')[0];
     let toInsert: string;
 
+    const protoComment = assignment.comment ? `\n${assignment.comment}` : '';
+
     // Case: named function
     if (firstLine.includes(` ${assignment.key}(`)) {
-        toInsert = `\nexport ${assignment.value}\n`;
+        toInsert = `${protoComment}\nexport ${assignment.value}\n`;
     } else {
         const parseFunctionProto = /^([^(]*function)\s*(\([\s\S]*)/g.exec(
             assignment.value,
         );
         if (parseFunctionProto) {
             // Case: convert to myFunction()
-            toInsert = `\nexport ${parseFunctionProto[1]} ${assignment.key}${parseFunctionProto[2]}\n`;
+            toInsert = `${protoComment}\nexport ${parseFunctionProto[1]} ${assignment.key}${parseFunctionProto[2]}\n`;
         } else {
             // Not a function
-            toInsert = `\nexport const ${assignment.key} = ${assignment.value};\n`;
+            toInsert = `${protoComment}\nexport const ${assignment.key} = ${assignment.value};\n`;
         }
     }
 

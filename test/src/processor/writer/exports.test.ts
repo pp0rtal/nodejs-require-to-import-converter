@@ -482,5 +482,47 @@ export const send = µ.test2(async function (opts) {
 `,
             );
         });
+
+        it('should rewrite functions inline and multiline comments', () => {
+            const fileContent = `
+Object.assign(module.exports, { 
+    // This comment is important
+    async function test1 (
+        ...
+    },
+
+    /**
+     * This is ESDoc
+     * @params {function} callback
+     * @return something
+     */
+    send: µ.test2(async function (opts) {
+        ...
+    }),
+});
+`;
+            const exports = getExports(fileContent, true);
+
+            const fileUpdate = rewriteExports(fileContent, exports);
+
+            expect(fileUpdate).to.deep.equal(
+                `
+
+// This comment is important
+export async function test1(
+    ...
+}
+
+/**
+ * This is ESDoc
+ * @params {function} callback
+ * @return something
+ */
+export const send = µ.test2(async function (opts) {
+    ...
+});
+`,
+            );
+        });
     });
 });

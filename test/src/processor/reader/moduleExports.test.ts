@@ -3,6 +3,7 @@ import * as sinon from 'sinon';
 import * as sinonChai from 'sinon-chai';
 
 import { getExports } from '../../../../src/processor/reader/moduleExports';
+import { rewriteExports } from '../../../../src/processor/writer/exports';
 
 chai.use(sinonChai);
 const expect = chai.expect;
@@ -31,8 +32,7 @@ describe('reader processor - module.exports', () => {
         });
 
         it('should parse multiline module.exports with Object.assign()', () => {
-            const fileContent =
-                `
+            const fileContent = `
 Object.assign(module.exports,
     {
         myFunction
@@ -44,15 +44,15 @@ Object.assign(module.exports,
             expect(requirements).to.deep.equal({
                 global: {
                     exportedProperties: ['myFunction'],
-                    raw: 'Object.assign(module.exports,\n    {\n        myFunction\n    }\n);',
+                    raw:
+                        'Object.assign(module.exports,\n    {\n        myFunction\n    }\n);',
                 },
                 inline: [],
             });
         });
 
         it('should parse multiline module.exports with _.extend()', () => {
-            const fileContent =
-                `
+            const fileContent = `
 _.extend(exports,
     {
         myFunction
@@ -64,7 +64,8 @@ _.extend(exports,
             expect(requirements).to.deep.equal({
                 global: {
                     exportedProperties: ['myFunction'],
-                    raw: '_.extend(exports,\n    {\n        myFunction\n    }\n);',
+                    raw:
+                        '_.extend(exports,\n    {\n        myFunction\n    }\n);',
                 },
                 inline: [],
             });
@@ -145,8 +146,10 @@ module.exports = function (data) {
 
             expect(requirements).to.deep.equal({
                 global: {
-                    directAssignment: 'function (data) {\n    return u_xml2js.read(data).then(json => snTree(json.manifest));\n};',
-                    raw: 'module.exports = function (data) {\n    return u_xml2js.read(data).then(json => snTree(json.manifest));\n};',
+                    directAssignment:
+                        'function (data) {\n    return u_xml2js.read(data).then(json => snTree(json.manifest));\n};',
+                    raw:
+                        'module.exports = function (data) {\n    return u_xml2js.read(data).then(json => snTree(json.manifest));\n};',
                 },
                 inline: [],
             });
@@ -187,7 +190,8 @@ function lib(){}
             expect(requirements).to.deep.equal({
                 global: {
                     exportedProperties: ['config1', 'config2', 'lib'],
-                    raw: 'Object.assign(module.exports, \n   config1, \nconfig2, { lib });\n',
+                    raw:
+                        'Object.assign(module.exports, \n   config1, \nconfig2, { lib });\n',
                 },
                 inline: [],
             });
@@ -207,7 +211,8 @@ config2 );
             expect(requirements).to.deep.equal({
                 global: {
                     exportedProperties: ['config1', 'config2'],
-                    raw: 'Object.assign(module.exports, \nconfig1, \nconfig2 );\n',
+                    raw:
+                        'Object.assign(module.exports, \nconfig1, \nconfig2 );\n',
                 },
                 inline: [],
             });
@@ -298,9 +303,13 @@ Object.assign(module.exports,
                                 value: '"value"',
                             },
                         ],
-                        exportedProperties: ['lib', 'questions', 'exportedConstant'],
+                        exportedProperties: [
+                            'lib',
+                            'questions',
+                            'exportedConstant',
+                        ],
                         raw:
-                            'Object.assign(module.exports,\n    lib,\n    questions, {\n        name: \"value\",\n        exportedConstant,\n    }   \n);\n',
+                            'Object.assign(module.exports,\n    lib,\n    questions, {\n        name: "value",\n        exportedConstant,\n    }   \n);\n',
                     },
                     inline: [],
                 });
@@ -356,7 +365,7 @@ Object.assign(module.exports, {
                         ],
                         exportedProperties: ['myFn', 'someConstant'],
                         raw:
-                            'Object.assign(module.exports, {\n    call: someConstructor(),\n    str: \"hello\",\n    number: 42,\n    myFn,\n    inlineArray: [\"...\", \"...\"],\n    someConstant\n});\n',
+                            'Object.assign(module.exports, {\n    call: someConstructor(),\n    str: "hello",\n    number: 42,\n    myFn,\n    inlineArray: ["...", "..."],\n    someConstant\n});\n',
                     },
                     inline: [],
                 });
@@ -386,7 +395,7 @@ Object.assign(module.exports, {
                         ],
                         exportedProperties: ['myFn', 'someConstant'],
                         raw:
-                            'Object.assign(module.exports, {\n    call: someConstructor(), // Comment\n    str: \"hello\",//Comment\n    number: 42,  // Comment\n    myFn,        // Comment\n    inlineArray: [\"...\", \"...\"],  // Comment\n    someConstant // Comment\n});\n',
+                            'Object.assign(module.exports, {\n    call: someConstructor(), // Comment\n    str: "hello",//Comment\n    number: 42,  // Comment\n    myFn,        // Comment\n    inlineArray: ["...", "..."],  // Comment\n    someConstant // Comment\n});\n',
                     },
                     inline: [],
                 });
@@ -397,7 +406,6 @@ Object.assign(module.exports, {
 Object.assign(module.exports, {
     singleLine: buildFirebaseAdapter({ firebaseNative }),
 
-    // Lost comment
     multilineFn: async function (){
         // some code,
         return {
@@ -427,7 +435,7 @@ Object.assign(module.exports, {
                         ],
                         exportedProperties: [],
                         raw:
-                            'Object.assign(module.exports, {\n    singleLine: buildFirebaseAdapter({ firebaseNative }),\n\n    // Lost comment\n    multilineFn: async function (){\n        // some code,\n        return {\n            someKey: \"value\",\n            global\n        }\n    },\n\n});\n',
+                            'Object.assign(module.exports, {\n    singleLine: buildFirebaseAdapter({ firebaseNative }),\n\n    multilineFn: async function (){\n        // some code,\n        return {\n            someKey: "value",\n            global\n        }\n    },\n\n});\n',
                     },
                     inline: [],
                 });
@@ -462,6 +470,51 @@ Object.assign(module.exports, {
                         exportedProperties: [],
                         raw:
                             'Object.assign(module.exports, {\n    myInlineFunc () { return true },\n    async myMultilineFunc(file) {\n       // code\n    }\n});\n',
+                    },
+                    inline: [],
+                });
+            });
+
+            it('should parse functions inline and multiline comments', () => {
+                const fileContent = `
+Object.assign(module.exports, { 
+    // This comment is important
+    async function test1 (
+        ...
+    },
+
+    /**
+     * This is ESDoc
+     * @params {function} callback
+     * @return something
+     */
+    send: µ.test2(async function (opts) {
+        ...
+    }),
+});
+`;
+
+                const requirements = getExports(fileContent, true);
+
+                expect(requirements).to.deep.equal({
+                    global: {
+                        assignments: [
+                            {
+                                comment: '// This comment is important',
+                                key: 'test1',
+                                value: 'async function test1(\n    ...\n}',
+                            },
+                            {
+                                comment:
+                                    '/**\n * This is ESDoc\n * @params {function} callback\n * @return something\n */',
+                                key: 'send',
+                                value:
+                                    'µ.test2(async function (opts) {\n    ...\n})',
+                            },
+                        ],
+                        exportedProperties: [],
+                        raw:
+                            'Object.assign(module.exports, { \n    // This comment is important\n    async function test1 (\n        ...\n    },\n\n    /**\n     * This is ESDoc\n     * @params {function} callback\n     * @return something\n     */\n    send: µ.test2(async function (opts) {\n        ...\n    }),\n});\n',
                     },
                     inline: [],
                 });
