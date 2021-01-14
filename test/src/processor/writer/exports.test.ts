@@ -75,11 +75,13 @@ export { a, b } from "./myLib3";
 
     it('should rewrite export assignments on multiple lines', () => {
         const fileContent = `
+const _ = require("lodash");
 const {
     someMethod, 
     someConstant,
     a,
 } = require("./myLib1");
+const $ = require("jquery");
 module.exports = { someMethod, someConstant, a};
 `;
         const exports = getExports(fileContent);
@@ -89,11 +91,13 @@ module.exports = { someMethod, someConstant, a};
         fileUpdate = rewriteExports(fileUpdate, exports);
 
         expect(fileUpdate).to.deep.equal(`
+import * as _ from "lodash";
 export {
     someMethod,
     someConstant,
     a,
 } from "./myLib1";
+import * as $ from "jquery";
 `);
     });
 
@@ -110,6 +114,34 @@ module.exports = { ...lib1};
 
         expect(fileUpdate).to.deep.equal(`
 export * from "./lib1";
+`);
+    });
+
+    it('should rewrite export ellipsis and some other keys', () => {
+        const fileContent = `
+const lib = require("./lib.js");
+const { jumanji } = require("./file1");
+const { prop1, prop2 } = require("./file2");
+
+Object.assign(module.exports, lib, {
+    prop1,
+    prop2,
+    jumanji
+});
+
+`;
+        const exports = getExports(fileContent);
+        const requirements = getRequires(fileContent);
+
+        let fileUpdate = rewriteImports(fileContent, requirements);
+        fileUpdate = rewriteExports(fileUpdate, exports);
+
+        expect(fileUpdate).to.deep.equal(`
+export * from "./lib";
+export { jumanji } from "./file1";
+export { prop1, prop2 } from "./file2";
+
+
 `);
     });
 

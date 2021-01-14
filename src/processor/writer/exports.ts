@@ -128,12 +128,15 @@ function replacePropertyDeclaration(
             `export ${defaultKey}${rawPropertyDeclaration}`,
         );
     } else if (rawPropertyImport) {
-        const updatedImport = options.isKeySet
-            ? rawPropertyImport.replace(
-                  `import * as ${assignment} `,
-                  `export * `,
-              )
-            : rawPropertyImport.replace(/^import/, 'export');
+        let updatedImport: string;
+        if (options.isKeySet) {
+            updatedImport = rawPropertyImport.replace(
+                `import * as ${assignment} `,
+                `export * `,
+            );
+        } else {
+            updatedImport = rawPropertyImport.replace(/^import /, 'export ');
+        }
         content = content.replace(rawPropertyImport, updatedImport);
     }
 
@@ -154,18 +157,18 @@ function replacePropertyDeclaration(
         const findImportRegex = new RegExp(
             isEllipsis
                 ? `^import \\* as ${escapeRegExp(property)} from .*$`
-                : `^import [\\s\\S]*?[\\s{,]${escapeRegExp(
+                : `^import ([^;]*)?[\\s{,]${escapeRegExp(
                       property,
-                  )}[,\\s}][\\s\\S]*?from.*$`,
+                  )}([,\\s}][^;]*)?from.*$`,
             'm',
         );
 
         const findExportRegex = new RegExp(
             isEllipsis
-                ? `^export \\* as_ ${escapeRegExp(property)} from .*$`
-                : `^export [\\s\\S]*[\\s{,]${escapeRegExp(
+                ? `^export \\* as ${escapeRegExp(property)} from .*$`
+                : `^export ([^;])*?[\\s{,]${escapeRegExp(
                       property,
-                  )}[,\\s}][\\s\\S]*from.*$`,
+                  )}([,\\s}][^;])*?from.*$`,
             'm',
         );
 
