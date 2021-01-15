@@ -173,8 +173,7 @@ module.exports = function (data) {
         });
 
         it('should parse full module.export = arrow function', () => {
-            const fileContent =
-                `module.exports = async () => {
+            const fileContent = `module.exports = async () => {
     // code
 };`;
 
@@ -182,10 +181,8 @@ module.exports = function (data) {
 
             expect(requirements).to.deep.equal({
                 global: {
-                    directAssignment:
-                        'async () => {\n    // code\n};',
-                    raw:
-                        'module.exports = async () => {\n    // code\n};',
+                    directAssignment: 'async () => {\n    // code\n};',
+                    raw: 'module.exports = async () => {\n    // code\n};',
                 },
                 inline: [],
             });
@@ -422,6 +419,39 @@ Object.assign(module.exports, {
                         exportedProperties: ['myFn', 'someConstant'],
                         raw:
                             'Object.assign(module.exports, {\n    call: someConstructor(),\n    str: "hello",\n    number: 42,\n    myFn,\n    inlineArray: ["...", "..."],\n    someConstant\n});\n',
+                    },
+                    inline: [],
+                });
+            });
+
+            it('should parse direct = object', () => {
+                const fileContent = `
+module.exports = {
+    getA: async req => _db.aaa.find(await getter(req), ["name", "skills"]),
+    getB: async req => _db.bbb.find(await getter(req), ["name", "skills"]),
+    someMethod
+};
+`;
+
+                const requirements = getExports(fileContent, true);
+
+                expect(requirements).to.deep.equal({
+                    global: {
+                        assignments: [
+                            {
+                                key: 'getA',
+                                value:
+                                    'async req => _db.aaa.find(await getter(req), ["name", "skills"])',
+                            },
+                            {
+                                key: 'getB',
+                                value:
+                                    'async req => _db.bbb.find(await getter(req), ["name", "skills"])',
+                            },
+                        ],
+                        exportedProperties: ['someMethod'],
+                        raw:
+                            'module.exports = {\n    getA: async req => _db.aaa.find(await getter(req), [\"name\", \"skills\"]),\n    getB: async req => _db.bbb.find(await getter(req), [\"name\", \"skills\"]),\n    someMethod\n};\n',
                     },
                     inline: [],
                 });

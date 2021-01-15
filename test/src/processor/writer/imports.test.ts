@@ -62,6 +62,15 @@ describe('writer processor - imports', () => {
         expect(fileUpdate).to.deep.equal("import _lib from './myFile';");
     });
 
+    it('should rewrite import with destructured key', () => {
+        const fileContent = `const exec = require('child_process').exec;`;
+        const requirements = getRequires(fileContent);
+
+        const fileUpdate = rewriteImports(fileContent, requirements);
+
+        expect(fileUpdate).to.deep.equal("import { exec } from 'child_process';");
+    });
+
     it('should rewrite import with multiple keys', () => {
         const fileContent = `const {map,omit}=require('lodash');`;
         const requirements = getRequires(fileContent);
