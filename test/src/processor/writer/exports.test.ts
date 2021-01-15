@@ -48,7 +48,6 @@ export class MyError extend Error(){}
 export function myFunction(){}
 export async function myAsyncFunction(){}
 export const myArrowFunction = async (context) => {};
-
 `);
         });
     });
@@ -140,8 +139,6 @@ Object.assign(module.exports, lib, {
 export * from "./lib";
 export { jumanji } from "./file1";
 export { prop1, prop2 } from "./file2";
-
-
 `);
     });
 
@@ -164,6 +161,7 @@ export * from "./integrationsInterface";
     it('should rewrite export direct assignment on a detached single function', () => {
         const fileContent = `
 function myMethod () {}
+
 module.exports = myMethod;
 `;
         const exports = getExports(fileContent);
@@ -342,6 +340,7 @@ function lib(){}
             expect(fileUpdate).to.deep.equal(`
 export const config1 = { /* keys */ };
 export const config2 = { /* keys */ };
+
 export function lib(){}
 `);
         });
@@ -355,7 +354,7 @@ export function lib(){}
             const fileUpdate = rewriteExports(fileContent, exports);
 
             expect(fileUpdate).to.deep.equal(
-                `\nexport const identifiedAuthenticator = buildIdentifiedAuthenticator();\n`,
+                `export const identifiedAuthenticator = buildIdentifiedAuthenticator();\n`,
             );
         });
 
@@ -437,7 +436,6 @@ export {
     someFn1,
     someFn2
 } from './package'
-
 `,
             );
             expect(loggerWarnSpy).to.not.be.called;
@@ -487,9 +485,7 @@ Object.assign(module.exports, {
             const fileUpdate = rewriteExports(fileContent, exports);
 
             expect(fileUpdate).to.deep.equal(
-                `
-
-export const call = someConstructor();
+                `export const call = someConstructor();
 
 export const str = "hello";
 
@@ -530,9 +526,7 @@ Object.assign(module.exports, {
             const fileUpdate = rewriteExports(fileContent, exports);
 
             expect(fileUpdate).to.deep.equal(
-                `
-
-export function singleLine({ param }){ /* code */ }
+                `export function singleLine({ param }){ /* code */ }
 
 export async function multilineFn(){ 
 }
@@ -569,9 +563,7 @@ Object.assign(module.exports, {
             const fileUpdate = rewriteExports(fileContent, exports);
 
             expect(fileUpdate).to.deep.equal(
-                `
-
-export async function test1(function(){ 
+                `export async function test1(function(){ 
     // Inside callback
 }) {
     // In test1
@@ -607,9 +599,7 @@ Object.assign(module.exports, {
             const fileUpdate = rewriteExports(fileContent, exports);
 
             expect(fileUpdate).to.deep.equal(
-                `
-
-// This comment is important
+                `// This comment is important
 export async function test1(
     ...
 }

@@ -1,6 +1,6 @@
 import { Assignment, ExportsInfo } from '../reader/moduleExports';
 import { escapeRegExp } from 'tslint/lib/utils';
-import { insertBeforeSearch } from '../../utils/string';
+import { dropBlockStr, insertBeforeSearch } from '../../utils/string';
 
 /**
  *
@@ -81,14 +81,11 @@ function rewriteGlobalExport(
         });
     }
 
-    if(!globalExports.directAssignment){
-        const globalRawPosition = content.indexOf(globalExports.raw);
-        if (globalRawPosition === -1) {
-            // May never happen
-            console.warn(`⚠️cannot find raw export\n${globalExports.raw}`);
-        } else {
-            content = content.replace(globalExports.raw, '');
-        }
+    try {
+        content = dropBlockStr(content, globalExports.raw);
+    } catch (err) {
+        // May never happen
+        console.warn(`⚠️cannot find raw export\n${globalExports.raw}`);
     }
 
     return content;
@@ -169,11 +166,10 @@ function replacePropertyDeclaration(
             isEllipsis
                 ? `^export \\* as_ ${escapeRegExp(property)} from .*$`
                 : `^export ([^;]*)?[\\s{,]${escapeRegExp(
-                property,
-                )}[,\\s}][^;]*?from.*$`,
+                      property,
+                  )}[,\\s}][^;]*?from.*$`,
             'm',
         );
-
 
         const importDeclaration = findImportRegex.exec(fileContent);
         const exportDeclaration = findExportRegex.exec(fileContent);
