@@ -356,7 +356,8 @@ function parseInnerMultilineAdvancedExport(
         const isMultilineCommentStart = /^\/\*/.test(paddedLine);
         const isMultilineCommentEnd = /^\s\*\//.test(paddedLine);
         const isEndOfDefinition =
-            /^[})]/.test(paddedLine) && !paddedLineWithoutComment.endsWith('{');
+            /^[\]})]/.test(paddedLine) &&
+            !paddedLineWithoutComment.endsWith('{');
         const isEndOfAssignment = blockProperty && isEndOfDefinition;
 
         if (isEndOfAssignment) {
@@ -382,12 +383,10 @@ function parseInnerMultilineAdvancedExport(
             assignments.push(flushAssignment());
         }
 
-        const parseAliasDeclaration = !blocBuffer && inlineNewAssign.exec(
-            paddedLineWithoutComment,
-        );
-        const parseDirectFunction = !blocBuffer && directFunction.exec(
-            paddedLineWithoutComment,
-        );
+        const parseAliasDeclaration =
+            !blocBuffer && inlineNewAssign.exec(paddedLineWithoutComment);
+        const parseDirectFunction =
+            !blocBuffer && directFunction.exec(paddedLineWithoutComment);
 
         if (
             !isCommentLine &&
@@ -407,11 +406,7 @@ function parseInnerMultilineAdvancedExport(
         } else if (!isEndOfAssignment && !isCommentLine) {
             // Allow empty line
             let key, rightLine, hasComma;
-            if (
-                !blocBuffer &&
-                !parseAliasDeclaration &&
-                parseDirectFunction
-            ) {
+            if (!blocBuffer && !parseAliasDeclaration && parseDirectFunction) {
                 // Handle direct function declaration
                 let fn;
                 [, fn, key, rightLine, hasComma] = parseDirectFunction;
@@ -452,6 +447,12 @@ function parseInnerMultilineAdvancedExport(
     };
 
     function flushAssignment() {
+        if (blocBuffer.includes('this.')) {
+            console.warn(
+                `⚠ beware of "this." usage in export "${blockProperty}"\n${blocBuffer}`,
+            );
+        }
+
         const newAssignment: Assignment = {
             key: blockProperty,
             value: cleanMultilineAssignment(blocBuffer),

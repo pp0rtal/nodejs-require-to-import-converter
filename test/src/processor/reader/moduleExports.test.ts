@@ -606,6 +606,88 @@ Object.assign(module.exports, {
                     inline: [],
                 });
             });
+
+            it('should parse multiline array definition', () => {
+                const fileContent = `
+Object.assign(module.exports, { 
+    definitions: µ.containsTester([
+        "aa",
+        "bb",
+    ]),
+
+    tool: function (lang) {
+        return lang;
+    },
+});
+`;
+
+                const requirements = getExports(fileContent, true);
+
+                console.log(requirements.global.assignments)
+
+                expect(requirements).to.deep.equal({
+                    global: {
+                        assignments: [
+                            {
+                                key: 'definitions',
+                                value: 'µ.containsTester([\n    \"aa\",\n    \"bb\",\n])',
+                            },
+                            {
+                                key: 'tool',
+                                value:
+                                    'function (lang) {\n    return lang;\n}',
+                            },
+                        ],
+                        exportedProperties: [],
+                        raw:
+                            'Object.assign(module.exports, { \n    definitions: µ.containsTester([\n        \"aa\",\n        \"bb\",\n    ]),\n\n    tool: function (lang) {\n        return lang;\n    },\n});\n',
+                    },
+                    inline: [],
+                });
+            });
+
+            it('should warn when there are "this.relative" uses', () => {
+                const loggerWarnSpy = sandbox.spy(console, 'warn');
+                const fileContent = `
+Object.assign(module.exports, {
+    rand: () => return Math.random(), 
+    func: function (lang) {
+        return this.rand() * 10;
+    },
+});
+`;
+
+                const requirements = getExports(fileContent, true);
+
+                console.log(requirements.global.assignments)
+
+                expect(requirements).to.deep.equal({
+                    global: {
+                        assignments: [
+                            {
+                                key: 'rand',
+                                value: '() => return Math.random()',
+                            },
+                            {
+                                key: 'func',
+                                value:
+                                    'function (lang) {\n    return this.rand() * 10;\n}',
+                            },
+                        ],
+                        exportedProperties: [],
+                        raw:
+                            'Object.assign(module.exports, {\n    rand: () => return Math.random(), \n    func: function (lang) {\n        return this.rand() * 10;\n    },\n});\n',
+                    },
+                    inline: [],
+                });
+
+                expect(loggerWarnSpy).to.be.calledOnceWithExactly(
+                    `⚠ beware of "this." usage in export "func"
+function (lang) {
+    return this.rand() * 10;
+},`,
+                );
+            });
         });
 
         describe('non-supported exports', () => {
