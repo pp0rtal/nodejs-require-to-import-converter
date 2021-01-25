@@ -250,7 +250,8 @@ function getInlineExports(content: string): InlineExportedContent {
  * @param innerContent
  */
 function parseInnerExportedMethods(innerContent: string): string[] {
-    const sanitizedContent = innerContent.replace(/\s/g, '');
+    const contentWithoutComment = removeMultilineComment(removeInlineComment(innerContent));
+    const sanitizedContent = contentWithoutComment.replace(/\s/g, '');
     const methods = sanitizedContent.split(',');
 
     return methods.filter((str) => str.length > 0);
@@ -305,6 +306,10 @@ function parseInnerAdvancedExport(
 
 function removeInlineComment(str: string): string {
     return str.replace(/[ \t]*\/\/.*/g, '');
+}
+
+function removeMultilineComment(str: string): string {
+    return str.replace(/\/\*[\w\W]*?\*\//g, '');
 }
 
 /**

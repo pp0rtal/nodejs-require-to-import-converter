@@ -1,0 +1,41 @@
+Know if a lib has default export
+import os from "os";
+
+
+
+
+direct export of... si possible :/
+(module.exports est la ligne 1 sinon)
+module.exports = {
+    reset: "\x1b[0m",
+
+    text: {
+        bright: "\x1b[1m",
+    },
+};
+... pareil pour
+module.exports = {
+    "rules": {
+        "no-process-exit": "off"
+    }
+};
+(ligne 1 = pas de dépendance!)
+faire en sorte d'accepter les lignes vides
+
+
+
+
+
+
+interesting case
+/home/portal/Projects/platform_refacto_exports/packages/backend//utils/tools/tools.js
+packages/backend/modules/stats/controllers/index.js
+
+
+
+
+
+Warn pour les require avec des espaces avant (warn sur les import dans le code)
+   import ...
+
+

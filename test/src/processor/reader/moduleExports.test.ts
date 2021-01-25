@@ -117,6 +117,39 @@ class SomeClass  = {};
             });
         });
 
+        it('should remove comments from inline exported values', () => {
+            const fileContent = `
+module.exports = {
+    aaa, // to be removed
+    /* comment */
+    bbb: 89,
+    
+    /**
+     * Hello
+     */
+    ccc,
+};
+
+`;
+
+            const requirements = getExports(fileContent);
+
+            expect(requirements).to.deep.equal({
+                global: {
+                    assignments: [
+                        {
+                            key: 'bbb',
+                            value: '89',
+                        },
+                    ],
+                    exportedProperties: ['aaa', 'ccc'],
+                    raw:
+                        'module.exports = {\n    aaa, // to be removed\n    /* comment */\n    bbb: 89,\n    \n    /**\n     * Hello\n     */\n    ccc,\n};\n',
+                },
+                inline: [],
+            });
+        });
+
         it('should parse full module.export = variable', () => {
             const fileContent = `
 class MyError extends Error {}
@@ -451,7 +484,7 @@ module.exports = {
                         ],
                         exportedProperties: ['someMethod'],
                         raw:
-                            'module.exports = {\n    getA: async req => _db.aaa.find(await getter(req), [\"name\", \"skills\"]),\n    getB: async req => _db.bbb.find(await getter(req), [\"name\", \"skills\"]),\n    someMethod\n};\n',
+                            'module.exports = {\n    getA: async req => _db.aaa.find(await getter(req), ["name", "skills"]),\n    getB: async req => _db.bbb.find(await getter(req), ["name", "skills"]),\n    someMethod\n};\n',
                     },
                     inline: [],
                 });
@@ -604,11 +637,9 @@ Object.assign(module.exports, {
                                     'µ.test2(async function (opts) {\n    ...\n})',
                             },
                             {
-                                comment:
-                                    '/**\n     * weird indent\n     */',
+                                comment: '/**\n     * weird indent\n     */',
                                 key: 'value',
-                                value:
-                                    '55',
+                                value: '55',
                             },
                         ],
                         exportedProperties: [],
@@ -635,24 +666,22 @@ Object.assign(module.exports, {
 
                 const requirements = getExports(fileContent, true);
 
-                console.log(requirements.global.assignments)
-
                 expect(requirements).to.deep.equal({
                     global: {
                         assignments: [
                             {
                                 key: 'definitions',
-                                value: 'µ.containsTester([\n    \"aa\",\n    \"bb\",\n])',
+                                value:
+                                    'µ.containsTester([\n    "aa",\n    "bb",\n])',
                             },
                             {
                                 key: 'tool',
-                                value:
-                                    'function (lang) {\n    return lang;\n}',
+                                value: 'function (lang) {\n    return lang;\n}',
                             },
                         ],
                         exportedProperties: [],
                         raw:
-                            'Object.assign(module.exports, { \n    definitions: µ.containsTester([\n        \"aa\",\n        \"bb\",\n    ]),\n\n    tool: function (lang) {\n        return lang;\n    },\n});\n',
+                            'Object.assign(module.exports, { \n    definitions: µ.containsTester([\n        "aa",\n        "bb",\n    ]),\n\n    tool: function (lang) {\n        return lang;\n    },\n});\n',
                     },
                     inline: [],
                 });
@@ -670,8 +699,6 @@ Object.assign(module.exports, {
 `;
 
                 const requirements = getExports(fileContent, true);
-
-                console.log(requirements.global.assignments)
 
                 expect(requirements).to.deep.equal({
                     global: {
