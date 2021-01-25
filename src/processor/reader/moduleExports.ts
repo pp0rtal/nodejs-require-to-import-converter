@@ -354,7 +354,7 @@ function parseInnerMultilineAdvancedExport(
         const paddedLineWithoutComment = paddedLine.replace(/\s*\/\/.*$/, '');
         const isInlineComment = /^\s*\/\/.*/.test(paddedLine);
         const isMultilineCommentStart = /^\/\*/.test(paddedLine);
-        const isMultilineCommentEnd = /^\s\*\//.test(paddedLine);
+        const isMultilineCommentEnd = /^\s*\*+\//.test(paddedLine);
         const isEndOfDefinition =
             /^[\]})]/.test(paddedLine) &&
             !paddedLineWithoutComment.endsWith('{');
@@ -420,10 +420,16 @@ function parseInnerMultilineAdvancedExport(
             }
 
             if (hasComma) {
-                assignments.push({
+                const newAssignment: Assignment = {
                     key,
                     value: rightLine,
-                });
+                };
+                if (multilineCommentBuffer) {
+                    newAssignment.comment = multilineCommentBuffer;
+                    multilineCommentBuffer = '';
+                }
+
+                assignments.push(newAssignment);
             } else {
                 blockProperty = key;
                 blocBuffer = rightLine;
@@ -449,7 +455,7 @@ function parseInnerMultilineAdvancedExport(
     function flushAssignment() {
         if (blocBuffer.includes('this.')) {
             console.warn(
-                `⚠ beware of "this." usage in export "${blockProperty}"\n${blocBuffer}`,
+                `👀 beware of "this." usage in export "${blockProperty}"\n${blocBuffer}`,
             );
         }
 

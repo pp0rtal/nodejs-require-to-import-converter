@@ -578,6 +578,11 @@ Object.assign(module.exports, {
     send: µ.test2(async function (opts) {
         ...
     }),
+
+    /**
+         * weird indent
+         */
+    value: 55,
 });
 `;
 
@@ -598,10 +603,17 @@ Object.assign(module.exports, {
                                 value:
                                     'µ.test2(async function (opts) {\n    ...\n})',
                             },
+                            {
+                                comment:
+                                    '/**\n     * weird indent\n     */',
+                                key: 'value',
+                                value:
+                                    '55',
+                            },
                         ],
                         exportedProperties: [],
                         raw:
-                            'Object.assign(module.exports, { \n    // This comment is important\n    async function test1 (\n        ...\n    },\n\n    /**\n     * This is ESDoc\n     * @params {function} callback\n     * @return something\n     */\n    send: µ.test2(async function (opts) {\n        ...\n    }),\n});\n',
+                            'Object.assign(module.exports, { \n    // This comment is important\n    async function test1 (\n        ...\n    },\n\n    /**\n     * This is ESDoc\n     * @params {function} callback\n     * @return something\n     */\n    send: µ.test2(async function (opts) {\n        ...\n    }),\n\n    /**\n         * weird indent\n         */\n    value: 55,\n});\n',
                     },
                     inline: [],
                 });
@@ -682,7 +694,7 @@ Object.assign(module.exports, {
                 });
 
                 expect(loggerWarnSpy).to.be.calledOnceWithExactly(
-                    `⚠ beware of "this." usage in export "func"
+                    `👀 beware of "this." usage in export "func"
 function (lang) {
     return this.rand() * 10;
 },`,

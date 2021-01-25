@@ -459,7 +459,7 @@ export { someLibs } from './package'
             );
 
             expect(loggerWarnSpy).to.be.calledOnceWithExactly(
-                `⚠️cannot find and export declaration of property "someMissingLib"`,
+                `👀️cannot find and export declaration of property "someMissingLib"`,
             );
         });
 

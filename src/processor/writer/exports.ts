@@ -125,7 +125,7 @@ function replacePropertyDeclaration(
 
     if (rawPropertyDeclaration === null && rawPropertyImport === null) {
         console.warn(
-            `⚠️cannot find and export declaration of property "${assignment}"`,
+            `👀 ️cannot find and export declaration of property "${assignment}"`,
         );
     }
     if (rawPropertyDeclaration) {
