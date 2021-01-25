@@ -50,7 +50,7 @@ async function confirmScan(path: string): Promise<void | never> {
 
 async function getParams(path: string): Promise<{ files: string[] } | never> {
     const prompt = inquirer.createPromptModule();
-    let ignore = 'node_modules .git dist';
+    let ignore = 'node_modules .git dist nyc.config.js';
     let doUpdate = false;
     let files: string[] = [];
     let refreshTree = true;

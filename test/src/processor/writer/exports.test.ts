@@ -506,6 +506,42 @@ export async function multilineFn(){
             );
         });
 
+        it('should export function definition with comments', () => {
+            const fileContent = `
+// Inline comment method1
+exports.method1 = async function () {
+    // code
+};
+
+/**
+ * Multiline comment 2
+ */
+exports.method2 = async function () {
+    // code
+};
+`;
+            const exports = getExports(fileContent, true);
+            console.log(exports)
+
+            const fileUpdate = rewriteExports(fileContent, exports);
+
+            expect(fileUpdate).to.deep.equal(
+                `
+// Inline comment method1
+export async function method1 () {
+    // code
+};
+
+/**
+ * Multiline comment 2
+ */
+export async function method2 () {
+    // code
+};
+`,
+            );
+        });
+
         it('should export direct named functions', () => {
             const fileContent = `
 Object.assign(module.exports, { 

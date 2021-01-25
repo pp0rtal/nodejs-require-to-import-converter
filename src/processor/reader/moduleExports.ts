@@ -228,7 +228,7 @@ export function getGlobalExports(
  */
 function getInlineExports(content: string): InlineExportedContent {
     const exportedContent: InlineExportedContent = [];
-    const exportsPropertyRegex = /^\n?(\s*?(?:module\.)?exports\.([^=.\s]+)\s*=\s*).*/gm;
+    const exportsPropertyRegex = /^\n?\s*?((?:module\.)?exports\.([^=.\s]+)\s*=\s*).*/gm;
 
     let parsePropertyExport;
     do {
