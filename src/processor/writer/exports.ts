@@ -81,6 +81,14 @@ function rewriteGlobalExport(
         });
     }
 
+    // Don't replace content for direct default export
+    const isDirectInlineAssignment =
+        globalExports.directAssignment &&
+        /[\s"':;=(){}]/.test(globalExports.directAssignment); // not a var name
+    if (isDirectInlineAssignment) {
+        return content;
+    }
+
     try {
         content = dropBlockStr(content, globalExports.raw);
     } catch (err) {
