@@ -382,18 +382,18 @@ function parseInnerMultilineAdvancedExport(
             assignments.push(flushAssignment());
         }
 
-        const parseAliasDeclaration = inlineNewAssign.exec(
+        const parseAliasDeclaration = !blocBuffer && inlineNewAssign.exec(
             paddedLineWithoutComment,
         );
-        const parseDirectFunction = directFunction.exec(
+        const parseDirectFunction = !blocBuffer && directFunction.exec(
             paddedLineWithoutComment,
         );
 
         if (
             !isCommentLine &&
             !isEndOfAssignment &&
-            parseAliasDeclaration === null &&
-            parseDirectFunction === null
+            !parseAliasDeclaration &&
+            !parseDirectFunction
         ) {
             if (blockProperty === '') {
                 if (/[^:,=(){}]/.test(paddedLineWithoutComment)) {
@@ -407,7 +407,11 @@ function parseInnerMultilineAdvancedExport(
         } else if (!isEndOfAssignment && !isCommentLine) {
             // Allow empty line
             let key, rightLine, hasComma;
-            if (parseAliasDeclaration === null && parseDirectFunction) {
+            if (
+                !blocBuffer &&
+                !parseAliasDeclaration &&
+                parseDirectFunction
+            ) {
                 // Handle direct function declaration
                 let fn;
                 [, fn, key, rightLine, hasComma] = parseDirectFunction;
