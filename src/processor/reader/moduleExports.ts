@@ -65,7 +65,7 @@ export function getGlobalExports(
     // Similar to above but with a little trick:
     // RELYING ON   \n})
     const exportsAttributionRegexExperiment = /^ *(?:module\.)?exports\s*=\s*{([\s\S]*?)\n};?\n?/m;
-    const exportsAssignRegexExperiment = /^ *(?:(?:(?:Object\.assign)|(?:_\.extend)|(?:_\.assign))\(\s*)(?:module\.)?exports\s*,\s*{([\s\S]*?)\n}\);?\n?/m;
+    const exportsAssignRegexExperiment = /^ *(?:(?:(?:Object\.assign)|(?:_\.extend)|(?:_\.assign))\(\s*)(?:module\.)?exports\s*,\s*{([\s\S]*?)\n}\n?\);?\n?/m;
 
     const exportMultilineDirectEqual = /^(?:module\.)?exports\s*=\s*([^\n]+{\n[\w\W]*\n}[^\n]*)/m;
     const exportDirectEqual = /^(?:module\.)?exports\s*=\s*([^\s;]+);?\n?/m;

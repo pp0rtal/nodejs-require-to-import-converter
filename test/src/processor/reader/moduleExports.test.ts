@@ -500,7 +500,8 @@ Object.assign(module.exports, {
         }
     },
 
-});
+}
+);
 `;
 
                 const requirements = getExports(fileContent, true);
@@ -521,7 +522,7 @@ Object.assign(module.exports, {
                         ],
                         exportedProperties: [],
                         raw:
-                            'Object.assign(module.exports, {\n    singleLine: buildFirebaseAdapter({ firebaseNative }),\n\n    multilineFn: async function (){\n        // some code,\n        return {\n            someKey: "value",\n            global\n        }\n    },\n\n});\n',
+                            'Object.assign(module.exports, {\n    singleLine: buildFirebaseAdapter({ firebaseNative }),\n\n    multilineFn: async function (){\n        // some code,\n        return {\n            someKey: "value",\n            global\n        }\n    },\n\n}\n);\n',
                     },
                     inline: [],
                 });
