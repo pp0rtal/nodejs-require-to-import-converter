@@ -51,7 +51,6 @@ function rewriteGlobalExport(
     if (globalExports.exportedProperties) {
         globalExports.exportedProperties.forEach((property) => {
             const [alias, key] = property.split(':');
-            // module.exports({ alias: originalKeyToExport })
             if (alias && key) {
                 content = moveExportedAssignment(content, globalExports.raw, {
                     key: alias,
@@ -116,6 +115,9 @@ function replacePropertyDeclaration(
         options.isKeySet,
     );
 
+    const countUsageRegex = new RegExp(`[^a-zA-Z\d_-]${escapeRegExp(assignment)}[^a-zA-Z\d_:-]`, 'g');
+    const shouldReImport = ([ ...content.matchAll(countUsageRegex)].length > 2);
+
     // Already exported with another key
     if (rawPropertyImport === true) {
         return content;
@@ -143,6 +145,12 @@ function replacePropertyDeclaration(
             );
         } else {
             updatedImport = rawPropertyImport.replace(/^import /, 'export ');
+            if(shouldReImport){
+                updatedImport += `\n${rawPropertyImport}`;
+                console.warn(
+                    `👀 ️a property is used and exported, you should manually check\n${updatedImport}`,
+                );
+            }
         }
         content = content.replace(rawPropertyImport, updatedImport);
     }

@@ -514,6 +514,44 @@ export {
             expect(loggerWarnSpy).to.not.be.called;
         });
 
+        it('should export constants and re import used ones', () => {
+            const loggerWarnSpy = sandbox.stub(console, 'warn');
+            const fileContent = `
+import {
+    usedAndExportedMethod
+} from './package'
+
+usedAndExportedMethod();
+
+Object.assign(module.exports, { usedAndExportedMethod });
+`;
+            const exports = getExports(fileContent, true);
+
+            const fileUpdate = rewriteExports(fileContent, exports);
+
+            expect(fileUpdate).to.deep.equal(
+                `
+export {
+    usedAndExportedMethod
+} from './package'
+import {
+    usedAndExportedMethod
+} from './package'
+
+usedAndExportedMethod();
+`,
+            );
+            expect(loggerWarnSpy).to.be.calledOnceWithExactly(
+                `👀 ️a property is used and exported, you should manually check
+export {
+    usedAndExportedMethod
+} from './package'
+import {
+    usedAndExportedMethod
+} from './package'`,
+            );
+        });
+
         it('should warn if direct export is not found', () => {
             const loggerWarnSpy = sandbox.stub(console, 'warn');
             const fileContent = `
