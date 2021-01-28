@@ -359,7 +359,7 @@ export function lib(){}
         });
 
         it('should export constants with an alias', () => {
-            const loggerWarnSpy = sandbox.spy(console, 'warn');
+            const loggerWarnSpy = sandbox.stub(console, 'warn');
             const fileContent = `
 const someConstant = {};
 module.exports = { 
@@ -381,7 +381,7 @@ export const alias = someConstant;
         });
 
         it('should export constants and direct exports', () => {
-            const loggerWarnSpy = sandbox.spy(console, 'warn');
+            const loggerWarnSpy = sandbox.stub(console, 'warn');
             const fileContent = `
 import { someFn1, someFn2 } from './package'
 
@@ -414,7 +414,7 @@ export const someAlias = someConstant;
         });
 
         it('should export constants and direct multiline exports', () => {
-            const loggerWarnSpy = sandbox.spy(console, 'warn');
+            const loggerWarnSpy = sandbox.stub(console, 'warn');
             const fileContent = `
 import {
     someFn1,
@@ -442,7 +442,7 @@ export {
         });
 
         it('should warn if direct export is not found', () => {
-            const loggerWarnSpy = sandbox.spy(console, 'warn');
+            const loggerWarnSpy = sandbox.stub(console, 'warn');
             const fileContent = `
 import { someLibs } from './package'
 module.exports = { someLibs, someMissingLib };
@@ -521,7 +521,6 @@ exports.method2 = async function () {
 };
 `;
             const exports = getExports(fileContent, true);
-            console.log(exports)
 
             const fileUpdate = rewriteExports(fileContent, exports);
 

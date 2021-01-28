@@ -45,6 +45,7 @@ export function getRequires(content: string): RequireInfo[] {
 /**
  * Try to parse require() line
  * @param rawLine
+ * @param isCommaDelimited
  * @return null or parsed requirement
  */
 function parseRequirementStatement(

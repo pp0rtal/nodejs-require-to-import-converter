@@ -1,41 +1,67 @@
 Know if a lib has default export
-import os from "os";
+
+
+
+export for ellipsis should notbe renamed
+import * as _lib from "./lib";
+
+Object.assign(module.exports, {
+    fetchRolesInAnyGroup,
+    ...
+}, _lib);
+=>
+export * as _lib from "./lib";
+(should be export * from "./lib";)
+
+
+
+export const dbLogger = dbLogger;
+
+Object.assign(module.exports, {
+    dbLogger: dbLogger,
+});
+
+
+
+export * as unitTest from "./unitTest";
+Object.assign(module.exports, {
+    ...unitTest,
+=> should be
+export * from "./unitTest";
+
+
+
+=> variable not detected
+port_https = sessionConfig.port_https;
+url360LWithPort = sessionConfig.url360LWithPoret;
 
 
 
 
-direct export of... si possible :/
-(module.exports est la ligne 1 sinon)
-module.exports = {
-    reset: "\x1b[0m",
-
-    text: {
-        bright: "\x1b[1m",
-    },
-};
-... pareil pour
-module.exports = {
-    "rules": {
-        "no-process-exit": "off"
-    }
-};
-(ligne 1 = pas de dépendance!)
-faire en sorte d'accepter les lignes vides
+=> handle ellipsis after
+Object.assign(module.exports, {
+    unsetUserJob
+}, _lib);
 
 
 
+=> Don't declare twice
+const router = Router();
+...
+export const router = router;
+
+
+handle import + export of a function ? See mongoWrapper
+export { cleanQuery, IMPOSSIBLE_QUERY } from "@utils/mongo";
+export { collections } from "./collections";
 
 
 
-interesting case
-/home/portal/Projects/platform_refacto_exports/packages/backend//utils/tools/tools.js
-packages/backend/modules/stats/controllers/index.js
+=> warn when replacing import with tabs
+function setGlobalStubs() {
+import { consoleLogger } from "../utils/loggers/ConsoleLogger";
+import { baseLogger } from "../utils/loggers/squads/baseLogger";
+import * as logger from "../utils/logger";
 
-
-
-
-
-Warn pour les require avec des espaces avant (warn sur les import dans le code)
-   import ...
 
 

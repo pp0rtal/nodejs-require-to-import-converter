@@ -17,7 +17,7 @@ describe('reader processor - require()', () => {
     describe('non-supported imports', () => {
         it('should avoid non supported require and warn', () => {
             const fileContent = `const _ = require(SOME_VARIABLE);`;
-            const loggerWarnSpy = sandbox.spy(console, 'warn');
+            const loggerWarnSpy = sandbox.stub(console, 'warn');
 
             const requirements = getRequires(fileContent);
 
@@ -30,7 +30,7 @@ describe('reader processor - require()', () => {
 
         it('should avoid function call inside imports and warn', () => {
             const fileContent = `const router = require("express").Router();`;
-            const loggerWarnSpy = sandbox.spy(console, 'warn');
+            const loggerWarnSpy = sandbox.stub(console, 'warn');
 
             const requirements = getRequires(fileContent);
 
@@ -46,7 +46,7 @@ describe('reader processor - require()', () => {
             require("fs").copyFileSync(
                 path.resolve(filesRoot),
             );`;
-            const loggerWarnSpy = sandbox.spy(console, 'warn');
+            const loggerWarnSpy = sandbox.stub(console, 'warn');
 
             const requirements = getRequires(fileContent);
 
@@ -61,7 +61,7 @@ describe('reader processor - require()', () => {
             const fileContent = `
 /* some useless comment */
 const createClock = require("sinon").clock.create;`;
-            const loggerWarnSpy = sandbox.spy(console, 'warn');
+            const loggerWarnSpy = sandbox.stub(console, 'warn');
 
             const requirements = getRequires(fileContent);
 
@@ -74,7 +74,7 @@ const createClock = require("sinon").clock.create;`;
 
         it('should avoid deep object destructuring for single key on destructured constant and warn', () => {
             const fileContent = `const { create: creatClock } = require("sinon").clock;`;
-            const loggerWarnSpy = sandbox.spy(console, 'warn');
+            const loggerWarnSpy = sandbox.stub(console, 'warn');
 
             const requirements = getRequires(fileContent);
 
@@ -224,7 +224,7 @@ const createClock = require("sinon").clock.create;`;
 
         it('should avoid non declared variable and warn', () => {
             const fileContent = `_ = require('lodash');`;
-            const loggerWarnSpy = sandbox.spy(console, 'warn');
+            const loggerWarnSpy = sandbox.stub(console, 'warn');
 
             const requirements = getRequires(fileContent);
 
@@ -348,7 +348,7 @@ const createClock = require("sinon").clock.create;`;
 
         it('should avoid deep object destructuring and warn', () => {
             const fileContent = `const { fake: { rejects} } = require('sinon');`;
-            const loggerWarnSpy = sandbox.spy(console, 'warn');
+            const loggerWarnSpy = sandbox.stub(console, 'warn');
 
             const requirements = getRequires(fileContent);
 

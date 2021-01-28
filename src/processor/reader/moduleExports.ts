@@ -1,6 +1,3 @@
-// Relative to module.export() parsing
-
-import { log } from 'util';
 
 export type Assignment = {
     key: string;

@@ -148,88 +148,88 @@ function replacePropertyDeclaration(
     }
 
     return content;
+}
 
-    /**
-     * Check if the property is imported in a import instruction
-     * @param fileContent
-     * @param property
-     * @param isEllipsis
-     * @return true if already exported with other key
-     */
-    function findPropertyImport(
-        fileContent: string,
-        property: string,
-        isEllipsis: boolean = false,
-    ): string | null | true {
-        const findImportRegex = new RegExp(
-            isEllipsis
-                ? `^import \\* as ${escapeRegExp(property)} from .*$`
-                : `^import ([^;]*)?[\\s{,]${escapeRegExp(
-                      property,
-                  )}([,\\s}][^;]*)?from.*$`,
-            'm',
-        );
+/**
+ * Check if the property is imported in a import instruction
+ * @param fileContent
+ * @param property
+ * @param isEllipsis
+ * @return true if already exported with other key
+ */
+function findPropertyImport(
+    fileContent: string,
+    property: string,
+    isEllipsis: boolean = false,
+): string | null | true {
+    const findImportRegex = new RegExp(
+        isEllipsis
+            ? `^import \\* as ${escapeRegExp(property)} from .*$`
+            : `^import ([^;]*)?[\\s{,]${escapeRegExp(
+            property,
+            )}([,\\s}][^;]*)?from.*$`,
+        'm',
+    );
 
-        const findExportRegex = new RegExp(
-            isEllipsis
-                ? `^export \\* as_ ${escapeRegExp(property)} from .*$`
-                : `^export ([^;]*)?[\\s{,]${escapeRegExp(
-                      property,
-                  )}[,\\s}][^;]*?from.*$`,
-            'm',
-        );
+    const findExportRegex = new RegExp(
+        isEllipsis
+            ? `^export \\* as_ ${escapeRegExp(property)} from .*$`
+            : `^export ([^;]*)?[\\s{,]${escapeRegExp(
+            property,
+            )}[,\\s}][^;]*?from.*$`,
+        'm',
+    );
 
-        const importDeclaration = findImportRegex.exec(fileContent);
-        const exportDeclaration = findExportRegex.exec(fileContent);
-        if (!importDeclaration && exportDeclaration) {
-            return true;
-        }
-
-        if (importDeclaration) {
-            return importDeclaration[0];
-        }
-
-        return null;
+    const importDeclaration = findImportRegex.exec(fileContent);
+    const exportDeclaration = findExportRegex.exec(fileContent);
+    if (!importDeclaration && exportDeclaration) {
+        return true;
     }
 
-    /**
-     * Try to find property declaration in imports / const / class declarations
-     * @param fileContent
-     * @param property
-     */
-    function findPropertyDeclaration(
-        fileContent: string,
-        property: string,
-    ): string | null {
-        const findFnRegex = new RegExp(
-            `^(async)? *function\\s+${escapeRegExp(property)}[\\s(]`,
-            'm',
-        );
-        const fnDeclaration = findFnRegex.exec(fileContent);
-        if (fnDeclaration) {
-            return fnDeclaration[0];
-        }
-
-        const findConstRegex = new RegExp(
-            `^(const|var|let)\\s${escapeRegExp(property)}[\\s=]`,
-            'gm',
-        );
-        const constDeclaration = findConstRegex.exec(fileContent);
-        if (constDeclaration) {
-            return constDeclaration[0];
-        }
-
-        const findClassRegex = new RegExp(
-            `^(class)\\s${escapeRegExp(property)}[\\s(]`,
-            'gm',
-        );
-        const classDeclaration = findClassRegex.exec(fileContent);
-        if (classDeclaration) {
-            return classDeclaration[0];
-        }
-
-        return null;
+    if (importDeclaration) {
+        return importDeclaration[0];
     }
+
+    return null;
+}
+
+/**
+ * Try to find property declaration in imports / const / class declarations
+ * @param fileContent
+ * @param property
+ */
+function findPropertyDeclaration(
+    fileContent: string,
+    property: string,
+): string | null {
+    const findFnRegex = new RegExp(
+        `^(async)? *function\\s+${escapeRegExp(property)}[\\s(]`,
+        'm',
+    );
+    const fnDeclaration = findFnRegex.exec(fileContent);
+    if (fnDeclaration) {
+        return fnDeclaration[0];
+    }
+
+    const findConstRegex = new RegExp(
+        `^(const|var|let)\\s${escapeRegExp(property)}[\\s=]`,
+        'gm',
+    );
+    const constDeclaration = findConstRegex.exec(fileContent);
+    if (constDeclaration) {
+        return constDeclaration[0];
+    }
+
+    const findClassRegex = new RegExp(
+        `^(class)\\s${escapeRegExp(property)}[\\s(]`,
+        'gm',
+    );
+    const classDeclaration = findClassRegex.exec(fileContent);
+    if (classDeclaration) {
+        return classDeclaration[0];
+    }
+
+    return null;
 }
 
 /**

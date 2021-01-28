@@ -688,7 +688,7 @@ Object.assign(module.exports, {
             });
 
             it('should warn when there are "this.relative" uses', () => {
-                const loggerWarnSpy = sandbox.spy(console, 'warn');
+                const loggerWarnSpy = sandbox.stub(console, 'warn');
                 const fileContent = `
 Object.assign(module.exports, {
     rand: () => return Math.random(), 
@@ -731,7 +731,7 @@ function (lang) {
 
         describe('non-supported exports', () => {
             it('should not take advanced exports when experimental mode is disabled', () => {
-                const loggerWarnSpy = sandbox.spy(console, 'warn');
+                const loggerWarnSpy = sandbox.stub(console, 'warn');
                 const fileContent = `
 Object.assign(module.exports, {
     uExternalFields: [
@@ -759,7 +759,7 @@ Object.assign(module.exports, {
             });
 
             it('should avoid global module.exports having function declared inside', () => {
-                const loggerWarnSpy = sandbox.spy(console, 'warn');
+                const loggerWarnSpy = sandbox.stub(console, 'warn');
                 const fileContent = `
 module.exports = {
     myFunction: function(){
@@ -787,7 +787,7 @@ module.exports = {
             });
 
             it('should avoid global module.exports having function declared inside', () => {
-                const loggerWarnSpy = sandbox.spy(console, 'warn');
+                const loggerWarnSpy = sandbox.stub(console, 'warn');
                 const fileContent = `
     module.exports = {
         firebaseNative: buildFirebaseNative()
