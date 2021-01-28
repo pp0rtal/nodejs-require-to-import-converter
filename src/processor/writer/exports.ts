@@ -241,7 +241,9 @@ function rewriteInlineExports(
     fileContent: string,
     inlineExports: ExportsInfo['inline'],
 ): string {
-    inlineExports.forEach((inlineExport) => {
+    inlineExports
+        .sort((exportA, exportB) => exportB.property.length - exportA.property.length)
+        .forEach((inlineExport) => {
         const parseFn = /(.*\s)function([\s(])/.exec(inlineExport.rawFullLine);
 
         if (parseFn !== null) {

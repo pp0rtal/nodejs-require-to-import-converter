@@ -116,7 +116,24 @@ export * from "./lib1";
 `);
     });
 
-    it('should rewrite export ellipsis and some other keys', () => {
+    it('should replace successfully exported properties with a same prefixed name', () => {
+        const fileContent = `
+module.exports.port_http = sessionConfig.port_http;
+module.exports.port_https = sessionConfig.port_https;
+`;
+        const exports = getExports(fileContent);
+        const requirements = getRequires(fileContent);
+
+        let fileUpdate = rewriteImports(fileContent, requirements);
+        fileUpdate = rewriteExports(fileUpdate, exports);
+
+        expect(fileUpdate).to.deep.equal(`
+export const port_http = sessionConfig.port_http;
+export const port_https = sessionConfig.port_https;
+`);
+    });
+
+    it('should rewrite exported objects and some other keys', () => {
         const fileContent = `
 const lib = require("./lib.js");
 const { jumanji } = require("./file1");

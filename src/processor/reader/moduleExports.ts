@@ -1,4 +1,3 @@
-
 export type Assignment = {
     key: string;
     value: string;
@@ -18,6 +17,11 @@ export type ExportsInfo = {
         rawFullLine: string;
         property: string;
     }>;
+};
+
+type ExportedProperties = {
+    exportedKeySets?: ExportsInfo['global']['exportedKeySets'];
+    exportedProperties?: ExportsInfo['global']['exportedProperties'];
 };
 
 type GlobalExportedContent = ExportsInfo['global'];
@@ -54,10 +58,10 @@ export function getGlobalExports(
 
     // Search for exports={} and assign(exports, {...});
     const exportsAttributionRegex = /^ *(?:module\.)?exports\s*=([^{}=()\[\]]+)?\s*{([\s\S]*?)}\s*;?\n?/m;
-    const exportsAssignAttributionRegex = /^ *(?:(?:(?:Object\.assign)|(?:_\.extend)|(?:_\.assign))\(\s*)(?:module\.)?exports\s*,([^{}=()\[\]]+)?\s*{([\s\S]*?)}\s*\);?\n?/m;
+    const exportsAssignAttributionRegex = /^ *(?:(?:(?:Object\.assign)|(?:_\.extend)|(?:_\.assign))\(\s*)(?:module\.)?exports\s*,([^{}=()\[\]]+)?\s*{([\s\S]*?)}\s*(,[^{}=()\[\]]+)?\s*\);?\n?/m;
 
     // Search for assign(exports, var, var, var);
-    const exportsAssignEllipsisOnly = /^ *(?:(?:Object\.assign)|(?:_\.extend)|(?:_\.assign))\(\s*(?:module\.)?exports\s*,([^{}=()\[\]]+)\);?\n?/m;
+    const exportsAssignedConstOnly = /^ *(?:(?:Object\.assign)|(?:_\.extend)|(?:_\.assign))\(\s*(?:module\.)?exports\s*,([^{}=()\[\]]+)\);?\n?/m;
 
     // Similar to above but with a little trick:
     // RELYING ON   \n})
@@ -71,7 +75,7 @@ export function getGlobalExports(
     const parseDirectEqual = exportDirectEqual.exec(content);
     const parseDirectMultiEqual = exportMultilineDirectEqual.exec(content);
 
-    const parseObjectEllipsisAssign = exportsAssignEllipsisOnly.exec(content);
+    const parseAssignesConstOnly = exportsAssignedConstOnly.exec(content);
     const parseObjectEqual = exportsAttributionRegex.exec(content);
     const parseObjectEqualAssign = exportsAssignAttributionRegex.exec(content);
     const parseObjectEqualExp = exportsAttributionRegexExperiment.exec(content);
@@ -100,15 +104,15 @@ export function getGlobalExports(
         }
     }
 
-    if (!parseAssign && parseObjectEllipsisAssign) {
+    if (!parseAssign && parseAssignesConstOnly) {
         const { exportedProperties } = parseInnerAdvancedExport(
-            parseObjectEllipsisAssign[1],
+            parseAssignesConstOnly[1],
         );
         if (exportedProperties) {
             exportedContent.exportedKeySets = exportedProperties;
         }
         exportedContent.exportedProperties = [];
-        exportedContent.raw = parseObjectEllipsisAssign[0];
+        exportedContent.raw = parseAssignesConstOnly[0];
         return exportedContent;
     }
 
@@ -116,7 +120,12 @@ export function getGlobalExports(
         return exportedContent;
     }
 
-    let [rawOuterExport, ellipsis, innerRaw] = parseAssign;
+    let [
+        rawOuterExport,
+        preAssignedImports,
+        innerRaw,
+        postAssignedImports,
+    ] = parseAssign;
     const totalOpenBraces = rawOuterExport.split('{').length - 1;
     const totalCloseBraces = rawOuterExport.split('}').length - 1;
     const hasInnerScope = totalOpenBraces > 1 || totalCloseBraces > 1;
@@ -172,7 +181,13 @@ export function getGlobalExports(
             } = parseInnerAdvancedExport(innerRaw);
             exportedContent.raw = rawOuterExport;
             exportedContent.assignments = assignments;
-            exportedContent.exportedProperties = exportedProperties;
+
+            if (exportedProperties) {
+                const filteredProperties = filterPropertiesWithEllipsis(
+                    exportedProperties,
+                );
+                Object.assign(exportedContent, filteredProperties);
+            }
         }
     } else {
         let exportedStr = parseInnerExportedMethods(innerRaw);
@@ -191,32 +206,42 @@ export function getGlobalExports(
             }
             return true;
         });
-
-        // Filter out ...keys
-        const exportedProperties = exportedStr.filter(
-            (str) => !str.startsWith('...'),
-        );
-        const exportedKeySets = exportedStr
-            .filter((str) => str.startsWith('...'))
-            .map((str) => str.substr(3));
-
-        if (exportedProperties.length)
-            exportedContent.exportedProperties = exportedProperties;
-        if (exportedKeySets.length)
-            exportedContent.exportedKeySets = exportedKeySets;
         if (assignments.length) {
             exportedContent.assignments = assignments;
         }
+
+        const filteredProperties = filterPropertiesWithEllipsis(exportedStr);
+        Object.assign(exportedContent, filteredProperties);
     }
 
-    if (ellipsis) {
-        const { exportedProperties } = parseInnerAdvancedExport(ellipsis);
+    if (preAssignedImports || postAssignedImports) {
+        const { exportedProperties } = parseInnerAdvancedExport(
+            `${preAssignedImports || ''}${postAssignedImports || ''}`,
+        );
         if (exportedProperties && exportedProperties.length) {
             exportedContent.exportedKeySets = exportedProperties;
         }
     }
 
     return exportedContent;
+}
+
+function filterPropertiesWithEllipsis(
+    rawProperties: string[],
+): ExportedProperties {
+    const properties = rawProperties.filter((str) => !str.startsWith('...'));
+    const keySets = rawProperties
+        .filter((str) => str.startsWith('...'))
+        .map((str) => str.substr(3));
+
+    const out: ExportedProperties = {};
+    if (properties.length) {
+        out.exportedProperties = properties;
+    }
+    if (keySets.length) {
+        out.exportedKeySets = keySets;
+    }
+    return out;
 }
 
 /***
@@ -247,7 +272,9 @@ function getInlineExports(content: string): InlineExportedContent {
  * @param innerContent
  */
 function parseInnerExportedMethods(innerContent: string): string[] {
-    const contentWithoutComment = removeMultilineComment(removeInlineComment(innerContent));
+    const contentWithoutComment = removeMultilineComment(
+        removeInlineComment(innerContent),
+    );
     const sanitizedContent = contentWithoutComment.replace(/\s/g, '');
     const methods = sanitizedContent.split(',');
 
