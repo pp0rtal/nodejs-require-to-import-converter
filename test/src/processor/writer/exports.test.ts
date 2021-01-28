@@ -334,6 +334,46 @@ export async function myAsyncFunction() => {
 `);
         });
 
+        it('should not export a named constant already defined', () => {
+            const fileContent = `
+function(){
+    const router = "dont_export";
+}
+
+const router = Router();
+
+exports.router = router;
+
+`;
+            const exports = getExports(fileContent);
+
+            const fileUpdate = rewriteExports(fileContent, exports);
+
+            expect(fileUpdate).to.deep.equal(`
+function(){
+    const router = "dont_export";
+}
+
+export const router = Router();
+
+
+`);
+        });
+
+        it('should export a non initialized constant', () => {
+            const fileContent = `
+let router;
+exports.router = router;
+`;
+            const exports = getExports(fileContent);
+
+            const fileUpdate = rewriteExports(fileContent, exports);
+
+            expect(fileUpdate).to.deep.equal(`
+export let router;
+`);
+        });
+
         it('should rewrite exported constant and usages', () => {
             const fileContent = `
 module.exports.CONSTANT = "...";

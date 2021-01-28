@@ -254,11 +254,21 @@ function rewriteInlineExports(
             );
             fileContent = fileContent.replace(inlineExport.raw, 'export ');
         } else {
-            const replacement = `export const ${inlineExport.property} = `;
-            fileContent = fileContent.replace(inlineExport.raw, replacement);
+            const searchDefinedConst = new RegExp(`^(const|let|var)\\s+${escapeRegExp(inlineExport.property)}\\s*[=;].*`, 'gm');
+            const hasDefinedConst = searchDefinedConst.exec(fileContent);
+
+            if (hasDefinedConst) {
+                // Update original constant definition and drop the export statement
+                fileContent = fileContent.replace(hasDefinedConst[0], `export ${hasDefinedConst[0]}`);
+                fileContent = fileContent.replace(new RegExp(`${escapeRegExp(inlineExport.raw)}.*\n`), '');
+            } else {
+                // Update export statement
+                const replacement = `export const ${inlineExport.property} = `;
+                fileContent = fileContent.replace(inlineExport.raw, replacement);
+            }
         }
         fileContent = fileContent.replace(
-            new RegExp(`module\.exports\.${inlineExport.property}`, 'g'),
+            new RegExp(`module\\.exports\\.${escapeRegExp(inlineExport.property)}`, 'g'),
             inlineExport.property,
         );
     });
