@@ -164,12 +164,14 @@ const createClock = require("sinon").clock.create;`;
 
         it('should support comma separated require', () => {
             const fileContent = `var fs = require("graceful-fs"),
-    xml2js = require("xml2js");`;
+    xml2js = require("xml2js");
+const _ = require("underscore");`;
 
             const requirements = getRequires(fileContent);
 
             expect(requirements).to.deep.equal([
                 {
+                    commaSeparated: true,
                     target: 'graceful-fs',
                     quoteType: "\"",
                     raw: "var fs = require(\"graceful-fs\"),",
@@ -181,6 +183,7 @@ const createClock = require("sinon").clock.create;`;
                     ],
                 },
                 {
+                    commaSeparated: true,
                     target: 'xml2js',
                     quoteType: "\"",
                     raw: "    xml2js = require(\"xml2js\");",
@@ -188,6 +191,17 @@ const createClock = require("sinon").clock.create;`;
                         {
                             key: '*',
                             alias: 'xml2js',
+                        },
+                    ],
+                },
+                {
+                    target: 'underscore',
+                    quoteType: "\"",
+                    raw: "const _ = require(\"underscore\");",
+                    imports: [
+                        {
+                            key: '*',
+                            alias: '_',
                         },
                     ],
                 },

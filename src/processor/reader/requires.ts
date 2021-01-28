@@ -23,17 +23,27 @@ export function getRequires(content: string): RequireInfo[] {
     const requireCallLineRegex = /^\n?(([^;=/*().]*[=])?\s*require\s*\([^)]+\)[^\n]*)$/gm;
 
     let parseRequire;
-    let commaSeparated = false;
+    let previousImportCommaSeparated = false;
     do {
         parseRequire = requireCallLineRegex.exec(content);
         if (parseRequire !== null) {
             const parsedRequirement = parseRequirementStatement(
                 parseRequire[1],
-                commaSeparated,
+                previousImportCommaSeparated,
             );
-            commaSeparated = parsedRequirement?.commaSeparated || false;
+
+            // Look at the , previous state to store commaSeparated
+            if (parsedRequirement && previousImportCommaSeparated) {
+                previousImportCommaSeparated = parsedRequirement?.commaSeparated || false;
+                parsedRequirement.commaSeparated = true;
+            } else {
+                previousImportCommaSeparated = parsedRequirement?.commaSeparated || false;
+            }
+
             if (parsedRequirement !== null) {
-                delete parsedRequirement.commaSeparated;
+                if (!parsedRequirement.commaSeparated) {
+                    delete parsedRequirement.commaSeparated;
+                }
                 requirements.push(parsedRequirement);
             }
         }

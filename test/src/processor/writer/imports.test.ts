@@ -100,6 +100,32 @@ describe('writer processor - imports', () => {
         expect(fileUpdate).to.deep.equal('import { expect } from "sinon";');
     });
 
+    it('should warn when replacing an import not commaSeparated with extra spaces', () => {
+        const loggerWarnSpy = sandbox.stub(console, 'warn');
+        const fileContent = `
+var $ = require('jquery'),
+    _ = require('underscore');
+function setGlobalStubs() {
+    const logger = require("../logger");
+}
+`;
+        const requirements = getRequires(fileContent);
+
+        const fileUpdate = rewriteImports(fileContent, requirements);
+
+        expect(fileUpdate).to.deep.equal(`
+import * as $ from 'jquery';
+import * as _ from 'underscore';
+function setGlobalStubs() {
+import * as logger from "../logger";
+}
+`);
+        expect(loggerWarnSpy).to.be.calledOnceWithExactly(
+            `👀 replaced an import with tabulation, you should have a look
+import * as logger from "../logger";`,
+        );
+    });
+
     it('should update multiple requirements', () => {
         const fileContent = `
 const _ = require('lodash');

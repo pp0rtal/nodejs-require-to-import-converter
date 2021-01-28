@@ -12,6 +12,11 @@ export function rewriteImports(
 ): string {
     requirements.forEach((requireConfig) => {
         const importLine = generateImport(requireConfig);
+        if(!requireConfig.commaSeparated && /^\s+/.test(requireConfig.raw)){
+            console.warn(
+                `👀 replaced an import with tabulation, you should have a look\n${importLine}`,
+            );
+        }
         fileContent = fileContent.replace(requireConfig.raw, importLine);
     });
 
