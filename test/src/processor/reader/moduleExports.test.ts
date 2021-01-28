@@ -88,10 +88,11 @@ _.extend(exports,
 
         it('should parse full module.export = { ... } with direct exports', () => {
             const fileContent = `
-const { insertLearningNeed } = require("../lib");
+const { insertMethod } = require("../lib");
 
 module.exports = {
     myFunction,
+    insertMethod: insertMethod,
     SomeClass,
 };
 
@@ -109,9 +110,10 @@ class SomeClass  = {};
 
             expect(requirements).to.deep.equal({
                 global: {
-                    exportedProperties: ['myFunction', 'SomeClass'],
+                    assignments: [],
+                    exportedProperties: ['myFunction', 'SomeClass', 'insertMethod'],
                     raw:
-                        'module.exports = {\n    myFunction,\n    SomeClass,\n};\n',
+                        'module.exports = {\n    myFunction,\n    insertMethod: insertMethod,\n    SomeClass,\n};\n',
                 },
                 inline: [],
             });
@@ -310,7 +312,6 @@ function lib(){}
 `;
 
                 const requirements = getExports(fileContent);
-                console.log(requirements.global)
 
                 expect(requirements).to.deep.equal({
                     global: {

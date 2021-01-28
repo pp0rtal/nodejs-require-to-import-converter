@@ -116,6 +116,22 @@ export * from "./lib1";
 `);
     });
 
+    it('should not recreate const for a same named import', () => {
+        const fileContent = `
+const dbLogger = require('./logger');
+Object.assign(module.exports, { dbLogger: dbLogger, });
+`;
+        const exports = getExports(fileContent);
+        const requirements = getRequires(fileContent);
+
+        let fileUpdate = rewriteImports(fileContent, requirements);
+        fileUpdate = rewriteExports(fileUpdate, exports);
+
+        expect(fileUpdate).to.deep.equal(`
+export * as dbLogger from './logger';
+`);
+    });
+
     it('should replace successfully exported properties with a same prefixed name', () => {
         const fileContent = `
 module.exports.port_http = sessionConfig.port_http;

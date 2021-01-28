@@ -214,6 +214,23 @@ export function getGlobalExports(
         Object.assign(exportedContent, filteredProperties);
     }
 
+    // Move exportName:exportName to exportedProperties
+    if (exportedContent.assignments) {
+        exportedContent.assignments = exportedContent.assignments.filter(
+            (assignment) => {
+                const isRedundantRename = assignment.key === assignment.value;
+                if (isRedundantRename) {
+                    if (!exportedContent.exportedProperties) {
+                        exportedContent.exportedProperties = [];
+                    }
+                    exportedContent.exportedProperties.push(assignment.key);
+                }
+
+                return !isRedundantRename;
+            },
+        );
+    }
+
     if (preAssignedImports || postAssignedImports) {
         const { exportedProperties } = parseInnerAdvancedExport(
             `${preAssignedImports || ''}${postAssignedImports || ''}`,
