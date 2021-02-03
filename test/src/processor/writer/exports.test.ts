@@ -17,7 +17,7 @@ describe('writer processor - exports', () => {
         sandbox.restore();
     });
 
-    describe('inline exports', () => {
+    describe("inline exports' - constants", () => {
         it('should rewrite inline export assignment on declared functions and variables', () => {
             const fileContent = `
 const MY_CONST = 42;
@@ -67,6 +67,7 @@ export const port_http = sessionConfig.port_http;
 export const port_https = sessionConfig.port_https;
 `);
         });
+
         it('should rewrite basic exported number constant) with module.exports', () => {
             const fileContent = 'module.exports.some_variable = 56';
             const exports = getExports(fileContent);
@@ -123,27 +124,6 @@ export const some_variable = [\n78];
 export const CONSTANT = {
    value: 56,
    second: 'a'
-}
-`);
-        });
-
-        it('should rewrite exported function', () => {
-            const fileContent = `
-module.exports.myArrow = () => {
-};
-module.exports.myFunction = function () => {};
-module.exports.myAsyncFunction = async function() => {
-}
-`;
-            const exports = getExports(fileContent);
-
-            const fileUpdate = rewriteExports(fileContent, exports);
-
-            expect(fileUpdate).to.deep.equal(`
-export const myArrow = () => {
-};
-export function myFunction () => {};
-export async function myAsyncFunction() => {
 }
 `);
         });
@@ -229,6 +209,88 @@ export const config1 = { /* keys */ };
 export const config2 = { /* keys */ };
 
 export function lib(){}
+`);
+        });
+    });
+
+    describe('inline exports - functions', () => {
+        it('should rewrite unnamed arrow with const', () => {
+            const fileContent = `
+module.exports.myArrow = () => {};
+`;
+            const exports = getExports(fileContent);
+
+            const fileUpdate = rewriteExports(fileContent, exports);
+
+            expect(fileUpdate).to.deep.equal(`
+export const myArrow = () => {};
+`);
+
+        });
+
+        it('should exported named function', () => {
+            const fileContent = `
+module.exports.myFunction = function () => {};
+`;
+            const exports = getExports(fileContent);
+
+            const fileUpdate = rewriteExports(fileContent, exports);
+
+            expect(fileUpdate).to.deep.equal(`
+export function myFunction () => {};
+`);
+        });
+
+
+        it('should rewrite named async function', () => {
+            const fileContent = `
+module.exports.myAsyncFunction = async function() => {}
+`;
+            const exports = getExports(fileContent);
+
+            const fileUpdate = rewriteExports(fileContent, exports);
+
+            expect(fileUpdate).to.deep.equal(`
+export async function myAsyncFunction() => {}
+`);
+        });
+
+        it('should rewrite named arrow function', () => {
+            const fileContent = `
+exports.XXXX = async (user, clearPw) => {};
+`;
+            const exports = getExports(fileContent);
+
+            const fileUpdate = rewriteExports(fileContent, exports);
+
+            expect(fileUpdate).to.deep.equal(`
+export async XXXX (user, clearPw) => {};
+`);
+        });
+
+        it('should use const for wrapped functions', () => {
+            const fileContent = `
+module.exports.isAuthorOfObjOrAdmin = µ.cm(async function (req) {});
+`;
+            const exports = getExports(fileContent);
+
+            const fileUpdate = rewriteExports(fileContent, exports);
+
+            expect(fileUpdate).to.deep.equal(`
+export const isAuthorOfObjOrAdmin = µ.cm(async function (req) {});
+`);
+        });
+
+        it('should use const for wrapped arrow functions', () => {
+            const fileContent = `
+module.exports.isAuthorOfObjOrAdmin = µ.cm((req) => {});
+`;
+            const exports = getExports(fileContent);
+
+            const fileUpdate = rewriteExports(fileContent, exports);
+
+            expect(fileUpdate).to.deep.equal(`
+export const isAuthorOfObjOrAdmin = µ.cm((req) => {});
 `);
         });
     });
