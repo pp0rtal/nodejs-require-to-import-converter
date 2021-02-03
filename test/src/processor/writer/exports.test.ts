@@ -17,8 +17,8 @@ describe('writer processor - exports', () => {
         sandbox.restore();
     });
 
-    describe('global exports', () => {
-        it('should rewrite export assignment on declared functions and variables', () => {
+    describe('inline exports', () => {
+        it('should rewrite inline export assignment on declared functions and variables', () => {
             const fileContent = `
 const MY_CONST = 42;
 
@@ -50,209 +50,23 @@ export async function myAsyncFunction(){}
 export const myArrowFunction = async (context) => {};
 `);
         });
-    });
 
-    it('should rewrite export assignments on imported libs', () => {
-        const fileContent = `
-const { someMethod } = require("./myLib1");
-const { someConstant } = require("./myLib2");
-const { a, b } =require("./myLib3");
-module.exports = { someMethod, someConstant, a,b};
-`;
-        const exports = getExports(fileContent);
-        const requirements = getRequires(fileContent);
-
-        let fileUpdate = rewriteImports(fileContent, requirements);
-        fileUpdate = rewriteExports(fileUpdate, exports);
-
-        expect(fileUpdate).to.deep.equal(`
-export { someMethod } from "./myLib1";
-export { someConstant } from "./myLib2";
-export { a, b } from "./myLib3";
-`);
-    });
-
-    it('should rewrite export assignments on multiple lines', () => {
-        const fileContent = `
-const _ = require("lodash");
-const {
-    someMethod, 
-    someConstant,
-    a,
-} = require("./myLib1");
-const $ = require("jquery");
-module.exports = { someMethod, someConstant, a};
-`;
-        const exports = getExports(fileContent);
-        const requirements = getRequires(fileContent);
-
-        let fileUpdate = rewriteImports(fileContent, requirements);
-        fileUpdate = rewriteExports(fileUpdate, exports);
-
-        expect(fileUpdate).to.deep.equal(`
-import * as _ from "lodash";
-export {
-    someMethod,
-    someConstant,
-    a,
-} from "./myLib1";
-import * as $ from "jquery";
-`);
-    });
-
-    it('should rewrite export ellipsis of imported libs', () => {
-        const fileContent = `
-const lib1 = require("./lib1");
-module.exports = { ...lib1};
-`;
-        const exports = getExports(fileContent);
-        const requirements = getRequires(fileContent);
-
-        let fileUpdate = rewriteImports(fileContent, requirements);
-        fileUpdate = rewriteExports(fileUpdate, exports);
-
-        expect(fileUpdate).to.deep.equal(`
-export * from "./lib1";
-`);
-    });
-
-    it('should not recreate const for a same named import', () => {
-        const fileContent = `
-const dbLogger = require('./logger');
-Object.assign(module.exports, { dbLogger: dbLogger, });
-`;
-        const exports = getExports(fileContent);
-        const requirements = getRequires(fileContent);
-
-        let fileUpdate = rewriteImports(fileContent, requirements);
-        fileUpdate = rewriteExports(fileUpdate, exports);
-
-        expect(fileUpdate).to.deep.equal(`
-export * as dbLogger from './logger';
-`);
-    });
-
-    it('should replace successfully exported properties with a same prefixed name', () => {
-        const fileContent = `
+        it('should replace successfully exported properties with a same prefixed name', () => {
+            const fileContent = `
 module.exports.port_http = sessionConfig.port_http;
 module.exports.port_https = sessionConfig.port_https;
 `;
-        const exports = getExports(fileContent);
-        const requirements = getRequires(fileContent);
+            const exports = getExports(fileContent);
+            const requirements = getRequires(fileContent);
 
-        let fileUpdate = rewriteImports(fileContent, requirements);
-        fileUpdate = rewriteExports(fileUpdate, exports);
+            let fileUpdate = rewriteImports(fileContent, requirements);
+            fileUpdate = rewriteExports(fileUpdate, exports);
 
-        expect(fileUpdate).to.deep.equal(`
+            expect(fileUpdate).to.deep.equal(`
 export const port_http = sessionConfig.port_http;
 export const port_https = sessionConfig.port_https;
 `);
-    });
-
-    it('should rewrite exported objects and some other keys', () => {
-        const fileContent = `
-const lib = require("./lib.js");
-const { jumanji } = require("./file1");
-const { prop1, prop2 } = require("./file2");
-
-Object.assign(module.exports, lib, {
-    prop1,
-    prop2,
-    jumanji
-});
-
-`;
-        const exports = getExports(fileContent);
-        const requirements = getRequires(fileContent);
-
-        let fileUpdate = rewriteImports(fileContent, requirements);
-        fileUpdate = rewriteExports(fileUpdate, exports);
-
-        expect(fileUpdate).to.deep.equal(`
-export * from "./lib";
-export { jumanji } from "./file1";
-export { prop1, prop2 } from "./file2";
-`);
-    });
-
-    it('should rewrite direct export all keys of a file', () => {
-        const fileContent = `
-const integrationsInterface = require("./integrationsInterface");
-Object.assign(module.exports, integrationsInterface);
-`;
-        const exports = getExports(fileContent);
-        const requirements = getRequires(fileContent);
-
-        let fileUpdate = rewriteImports(fileContent, requirements);
-        fileUpdate = rewriteExports(fileUpdate, exports);
-
-        expect(fileUpdate).to.deep.equal(`
-export * from "./integrationsInterface";
-`);
-    });
-
-    it('should rewrite export direct assignment on a detached single function', () => {
-        const fileContent = `
-function myMethod () {}
-
-module.exports = myMethod;
-`;
-        const exports = getExports(fileContent);
-
-        const fileUpdate = rewriteExports(fileContent, exports);
-
-        expect(fileUpdate).to.deep.equal(`
-export default function myMethod () {}
-`);
-    });
-
-    it('should rewrite export direct assignment on a full function definition', () => {
-        const fileContent = `
-module.exports = async () => {
-    const sessions = await _db.programSessions.find({ sharingInfo: $ex });
-});
-`;
-        const exports = getExports(fileContent);
-
-        const fileUpdate = rewriteExports(fileContent, exports);
-
-        expect(fileUpdate).to.deep.equal(`
-export default async () => {
-    const sessions = await _db.programSessions.find({ sharingInfo: $ex });
-});
-`);
-    });
-
-    it('should rewrite export direct assignment on a single line definition', () => {
-        const fileContent =
-            'module.exports = class AttemptException extends Error {};';
-        const exports = getExports(fileContent);
-
-        const fileUpdate = rewriteExports(fileContent, exports);
-
-        expect(fileUpdate).to.deep.equal(
-            'export default class AttemptException extends Error {};',
-        );
-    });
-
-    it('should rewrite direct multiline export', () => {
-        const fileContent = `
-module.exports = function (data) {
-    return u_xml2js.read(data).then(json => snTree(json.manifest));
-};
-`;
-        const exports = getExports(fileContent);
-
-        const fileUpdate = rewriteExports(fileContent, exports);
-
-        expect(fileUpdate).to.deep.equal(`
-export default function (data) {
-    return u_xml2js.read(data).then(json => snTree(json.manifest));
-};
-`);
-    });
-
-    describe('inline exports', () => {
+        });
         it('should rewrite basic exported number constant) with module.exports', () => {
             const fileContent = 'module.exports.some_variable = 56';
             const exports = getExports(fileContent);
@@ -415,6 +229,193 @@ export const config1 = { /* keys */ };
 export const config2 = { /* keys */ };
 
 export function lib(){}
+`);
+        });
+    });
+
+    describe('Import / export', () => {
+        it('should rewrite exported assignments on imported libs', () => {
+            const fileContent = `
+const { someMethod } = require("./myLib1");
+const { someConstant } = require("./myLib2");
+const { a, b } =require("./myLib3");
+module.exports = { someMethod, someConstant, a,b};
+`;
+            const exports = getExports(fileContent);
+            const requirements = getRequires(fileContent);
+
+            let fileUpdate = rewriteImports(fileContent, requirements);
+            fileUpdate = rewriteExports(fileUpdate, exports);
+
+            expect(fileUpdate).to.deep.equal(`
+export { someMethod } from "./myLib1";
+export { someConstant } from "./myLib2";
+export { a, b } from "./myLib3";
+`);
+        });
+
+        it('should rewrite export assignments on multiple lines', () => {
+            const fileContent = `
+const _ = require("lodash");
+const {
+    someMethod, 
+    someConstant,
+    a,
+} = require("./myLib1");
+const $ = require("jquery");
+module.exports = { someMethod, someConstant, a};
+`;
+            const exports = getExports(fileContent);
+            const requirements = getRequires(fileContent);
+
+            let fileUpdate = rewriteImports(fileContent, requirements);
+            fileUpdate = rewriteExports(fileUpdate, exports);
+
+            expect(fileUpdate).to.deep.equal(`
+import * as _ from "lodash";
+export {
+    someMethod,
+    someConstant,
+    a,
+} from "./myLib1";
+import * as $ from "jquery";
+`);
+        });
+
+        it('should rewrite export ellipsis of imported libs', () => {
+            const fileContent = `
+const lib1 = require("./lib1");
+module.exports = { ...lib1};
+`;
+            const exports = getExports(fileContent);
+            const requirements = getRequires(fileContent);
+
+            let fileUpdate = rewriteImports(fileContent, requirements);
+            fileUpdate = rewriteExports(fileUpdate, exports);
+
+            expect(fileUpdate).to.deep.equal(`
+export * from "./lib1";
+`);
+        });
+
+        it('should not recreate const for a same named import', () => {
+            const fileContent = `
+const dbLogger = require('./logger');
+Object.assign(module.exports, { dbLogger: dbLogger, });
+`;
+            const exports = getExports(fileContent);
+            const requirements = getRequires(fileContent);
+
+            let fileUpdate = rewriteImports(fileContent, requirements);
+            fileUpdate = rewriteExports(fileUpdate, exports);
+
+            expect(fileUpdate).to.deep.equal(`
+export * as dbLogger from './logger';
+`);
+        });
+
+        it('should rewrite exported objects and some other keys', () => {
+            const fileContent = `
+const lib = require("./lib.js");
+const { jumanji } = require("./file1");
+const { prop1, prop2 } = require("./file2");
+
+Object.assign(module.exports, lib, {
+    prop1,
+    prop2,
+    jumanji
+});
+
+`;
+            const exports = getExports(fileContent);
+            const requirements = getRequires(fileContent);
+
+            let fileUpdate = rewriteImports(fileContent, requirements);
+            fileUpdate = rewriteExports(fileUpdate, exports);
+
+            expect(fileUpdate).to.deep.equal(`
+export * from "./lib";
+export { jumanji } from "./file1";
+export { prop1, prop2 } from "./file2";
+`);
+        });
+
+        it('should rewrite direct export all keys of a file', () => {
+            const fileContent = `
+const integrationsInterface = require("./integrationsInterface");
+Object.assign(module.exports, integrationsInterface);
+`;
+            const exports = getExports(fileContent);
+            const requirements = getRequires(fileContent);
+
+            let fileUpdate = rewriteImports(fileContent, requirements);
+            fileUpdate = rewriteExports(fileUpdate, exports);
+
+            expect(fileUpdate).to.deep.equal(`
+export * from "./integrationsInterface";
+`);
+        });
+    });
+
+    describe('default export', () => {
+        it('should rewrite export direct assignment on a detached single function', () => {
+            const fileContent = `
+function myMethod () {}
+
+module.exports = myMethod;
+`;
+            const exports = getExports(fileContent);
+
+            const fileUpdate = rewriteExports(fileContent, exports);
+
+            expect(fileUpdate).to.deep.equal(`
+export default function myMethod () {}
+`);
+        });
+
+        it('should rewrite export direct assignment on a full function definition', () => {
+            const fileContent = `
+module.exports = async () => {
+    const sessions = await _db.programSessions.find({ sharingInfo: $ex });
+});
+`;
+            const exports = getExports(fileContent);
+
+            const fileUpdate = rewriteExports(fileContent, exports);
+
+            expect(fileUpdate).to.deep.equal(`
+export default async () => {
+    const sessions = await _db.programSessions.find({ sharingInfo: $ex });
+});
+`);
+        });
+
+        it('should rewrite export direct assignment on a single line definition', () => {
+            const fileContent =
+                'module.exports = class AttemptException extends Error {};';
+            const exports = getExports(fileContent);
+
+            const fileUpdate = rewriteExports(fileContent, exports);
+
+            expect(fileUpdate).to.deep.equal(
+                'export default class AttemptException extends Error {};',
+            );
+        });
+
+        it('should rewrite direct multiline export', () => {
+            const fileContent = `
+module.exports = function (data) {
+    return u_xml2js.read(data).then(json => snTree(json.manifest));
+};
+`;
+            const exports = getExports(fileContent);
+
+            const fileUpdate = rewriteExports(fileContent, exports);
+
+            expect(fileUpdate).to.deep.equal(`
+export default function (data) {
+    return u_xml2js.read(data).then(json => snTree(json.manifest));
+};
 `);
         });
     });

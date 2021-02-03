@@ -15,7 +15,64 @@ describe('reader processor - module.exports', () => {
         sandbox.restore();
     });
 
-    describe('export full assignment', () => {
+    describe('inline exports support (export.key=)', () => {
+        it('should export an exported variables', () => {
+            const fileContent = `// ...
+module.exports.someVariable = { total: 30,};
+`;
+
+            const requirements = getExports(fileContent);
+
+            expect(requirements).to.deep.equal({
+                global: {},
+                inline: [
+                    {
+                        raw: 'module.exports.someVariable = ',
+                        rawFullLine:
+                            '\nmodule.exports.someVariable = { total: 30,};',
+                        property: 'someVariable',
+                    },
+                ],
+            });
+        });
+
+        it('should export multiples exported variables', () => {
+            const fileContent = `
+module.exports.someVariable = {
+    total: 30,
+};
+module.exports.CONSTANT="Hello";
+exports.OTHER_CONSTANT="test";
+
+console.log("Some use of " + module.exports.someVariable.total);
+`;
+
+            const requirements = getExports(fileContent);
+
+            expect(requirements).to.deep.equal({
+                global: {},
+                inline: [
+                    {
+                        raw: 'module.exports.someVariable = ',
+                        rawFullLine: '\nmodule.exports.someVariable = {',
+                        property: 'someVariable',
+                    },
+                    {
+                        raw: 'module.exports.CONSTANT=',
+                        rawFullLine: 'module.exports.CONSTANT="Hello";',
+                        property: 'CONSTANT',
+                    },
+                    {
+                        raw: 'exports.OTHER_CONSTANT=',
+                        rawFullLine: 'exports.OTHER_CONSTANT="test";',
+                        property: 'OTHER_CONSTANT',
+                    },
+                ],
+            });
+        });
+    });
+
+    describe('Assignment basic object support', () => {
         it('should parse inline module.exports with Object.assign()', () => {
             const fileContent =
                 '\n\n\nObject.assign(module.exports, {myFunction})\n\n\n';
@@ -86,39 +143,6 @@ _.extend(exports,
             });
         });
 
-        it('should parse full module.export = { ... } with direct exports', () => {
-            const fileContent = `
-const { insertMethod } = require("../lib");
-
-module.exports = {
-    myFunction,
-    insertMethod: insertMethod,
-    SomeClass,
-};
-
-async function myFunction(req) {
-    return {
-        someCode: "value",
-    });
-}
-
-class SomeClass  = {};
-
-`;
-
-            const requirements = getExports(fileContent);
-
-            expect(requirements).to.deep.equal({
-                global: {
-                    assignments: [],
-                    exportedProperties: ['myFunction', 'SomeClass', 'insertMethod'],
-                    raw:
-                        'module.exports = {\n    myFunction,\n    insertMethod: insertMethod,\n    SomeClass,\n};\n',
-                },
-                inline: [],
-            });
-        });
-
         it('should remove comments from inline exported values', () => {
             const fileContent = `
 module.exports = {
@@ -147,6 +171,59 @@ module.exports = {
                     exportedProperties: ['aaa', 'ccc'],
                     raw:
                         'module.exports = {\n    aaa, // to be removed\n    /* comment */\n    bbb: 89,\n    \n    /**\n     * Hello\n     */\n    ccc,\n};\n',
+                },
+                inline: [],
+            });
+        });
+
+        it('should not take experimental export if disabled and warn', () => {
+            const fileContent = `
+// Object.assign(module.exports, { ...lib1, ...lib2 });
+// module.exports = { ...lib1, ...lib2 };
+`;
+
+            const requirements = getExports(fileContent);
+
+            expect(requirements).to.deep.equal({
+                global: {},
+                inline: [],
+            });
+        });
+    });
+
+    describe('direct exports =', () => {
+        it('should parse full module.export = { ... } with direct exports', () => {
+            const fileContent = `
+const { insertMethod } = require("../lib");
+
+module.exports = {
+    myFunction,
+    insertMethod: insertMethod,
+    SomeClass,
+};
+
+async function myFunction(req) {
+    return {
+        someCode: "value",
+    });
+}
+
+class SomeClass  = {};
+
+`;
+
+            const requirements = getExports(fileContent);
+
+            expect(requirements).to.deep.equal({
+                global: {
+                    assignments: [],
+                    exportedProperties: [
+                        'myFunction',
+                        'SomeClass',
+                        'insertMethod',
+                    ],
+                    raw:
+                        'module.exports = {\n    myFunction,\n    insertMethod: insertMethod,\n    SomeClass,\n};\n',
                 },
                 inline: [],
             });
@@ -242,24 +319,11 @@ Object.assign(module.exports, {
                 inline: [],
             });
         });
+    });
 
-        it('should not take experimental export and warn', () => {
+    describe('ellipsis and object assignment', () => {
+        it('should parse assigned with ... ellipsis members in Object.assign', () => {
             const fileContent = `
-// Object.assign(module.exports, { ...lib1, ...lib2 });
-// module.exports = { ...lib1, ...lib2 };
-`;
-
-            const requirements = getExports(fileContent);
-
-            expect(requirements).to.deep.equal({
-                global: {},
-                inline: [],
-            });
-        });
-
-        describe('Ellipsis and object assignment', () => {
-            it('should parse assigned with ... ellipsis members in Object.assign', () => {
-                const fileContent = `
 const lib1 = require('./lib1');
 const lib2 = require('./lib2');
 const someFn = require('./file');
@@ -267,20 +331,20 @@ module.exports = { ...lib1, ...lib2, someFn};
 
 `;
 
-                const requirements = getExports(fileContent);
+            const requirements = getExports(fileContent);
 
-                expect(requirements).to.deep.equal({
-                    global: {
-                        exportedKeySets: ['lib1', 'lib2'],
-                        exportedProperties: ['someFn'],
-                        raw: 'module.exports = { ...lib1, ...lib2, someFn};\n',
-                    },
-                    inline: [],
-                });
+            expect(requirements).to.deep.equal({
+                global: {
+                    exportedKeySets: ['lib1', 'lib2'],
+                    exportedProperties: ['someFn'],
+                    raw: 'module.exports = { ...lib1, ...lib2, someFn};\n',
+                },
+                inline: [],
             });
+        });
 
-            it('should parse direct assigned objects in multiline Object.assign', () => {
-                const fileContent = `
+        it('should parse direct assigned objects in multiline Object.assign', () => {
+            const fileContent = `
 const config1 = { /* keys */ };
 const config2 = { /* keys */ };
 Object.assign(module.exports, 
@@ -289,21 +353,21 @@ config2, { lib });
 function lib(){}
 `;
 
-                const requirements = getExports(fileContent);
+            const requirements = getExports(fileContent);
 
-                expect(requirements).to.deep.equal({
-                    global: {
-                        exportedKeySets: ['config1', 'config2'],
-                        exportedProperties: ['lib'],
-                        raw:
-                            'Object.assign(module.exports, \n   config1, \nconfig2, { lib });\n',
-                    },
-                    inline: [],
-                });
+            expect(requirements).to.deep.equal({
+                global: {
+                    exportedKeySets: ['config1', 'config2'],
+                    exportedProperties: ['lib'],
+                    raw:
+                        'Object.assign(module.exports, \n   config1, \nconfig2, { lib });\n',
+                },
+                inline: [],
             });
+        });
 
-            it('should parse direct assigned objects in multiline Object.assign after {} definition', () => {
-                const fileContent = `
+        it('should parse direct assigned objects in multiline Object.assign after {} definition', () => {
+            const fileContent = `
 const config1 = { /* keys */ };
 const config2 = { /* keys */ };
 Object.assign(module.exports, 
@@ -311,21 +375,21 @@ Object.assign(module.exports,
 function lib(){}
 `;
 
-                const requirements = getExports(fileContent);
+            const requirements = getExports(fileContent);
 
-                expect(requirements).to.deep.equal({
-                    global: {
-                        exportedKeySets: ['config1', 'config2'],
-                        exportedProperties: ['lib'],
-                        raw:
-                            'Object.assign(module.exports, \n   config1, { lib }, config2);\n',
-                    },
-                    inline: [],
-                });
+            expect(requirements).to.deep.equal({
+                global: {
+                    exportedKeySets: ['config1', 'config2'],
+                    exportedProperties: ['lib'],
+                    raw:
+                        'Object.assign(module.exports, \n   config1, { lib }, config2);\n',
+                },
+                inline: [],
             });
+        });
 
-            it('should parse direct assigned objects members in Object.assign with no inner object', () => {
-                const fileContent = `
+        it('should parse direct assigned objects members in Object.assign with no inner object', () => {
+            const fileContent = `
 const config1 = { /* keys */ };
 const config2 = { /* keys */ };
 Object.assign(module.exports, 
@@ -333,45 +397,45 @@ config1,
 config2 );
 `;
 
-                const requirements = getExports(fileContent);
+            const requirements = getExports(fileContent);
 
-                expect(requirements).to.deep.equal({
-                    global: {
-                        exportedKeySets: ['config1', 'config2'],
-                        exportedProperties: [],
-                        raw:
-                            'Object.assign(module.exports, \nconfig1, \nconfig2 );\n',
-                    },
-                    inline: [],
-                });
+            expect(requirements).to.deep.equal({
+                global: {
+                    exportedKeySets: ['config1', 'config2'],
+                    exportedProperties: [],
+                    raw:
+                        'Object.assign(module.exports, \nconfig1, \nconfig2 );\n',
+                },
+                inline: [],
             });
         });
+    });
 
-        describe('experimental direct exported definitions', () => {
-            it('should parse inline instructions', () => {
-                const fileContent = `
+    describe('experimental direct exported definitions', () => {
+        it('should parse inline instructions', () => {
+            const fileContent = `
 Object.assign(module.exports, { identifiedAuthenticator: buildIdentifiedAuthenticator() });
 `;
 
-                const requirements = getExports(fileContent, true);
+            const requirements = getExports(fileContent, true);
 
-                expect(requirements).to.deep.equal({
-                    global: {
-                        assignments: [
-                            {
-                                key: 'identifiedAuthenticator',
-                                value: 'buildIdentifiedAuthenticator()',
-                            },
-                        ],
-                        raw:
-                            'Object.assign(module.exports, { identifiedAuthenticator: buildIdentifiedAuthenticator() });\n',
-                    },
-                    inline: [],
-                });
+            expect(requirements).to.deep.equal({
+                global: {
+                    assignments: [
+                        {
+                            key: 'identifiedAuthenticator',
+                            value: 'buildIdentifiedAuthenticator()',
+                        },
+                    ],
+                    raw:
+                        'Object.assign(module.exports, { identifiedAuthenticator: buildIdentifiedAuthenticator() });\n',
+                },
+                inline: [],
             });
+        });
 
-            it('should parse hybrid inline instructions + keys', () => {
-                const fileContent = `
+        it('should parse hybrid inline instructions + keys', () => {
+            const fileContent = `
 Object.assign(module.exports, {
     identifiedAuthenticator: someConstructor(),
     someConstant,
@@ -379,27 +443,27 @@ Object.assign(module.exports, {
 });
 `;
 
-                const requirements = getExports(fileContent, true);
+            const requirements = getExports(fileContent, true);
 
-                expect(requirements).to.deep.equal({
-                    global: {
-                        assignments: [
-                            {
-                                key: 'identifiedAuthenticator',
-                                value: 'someConstructor()',
-                            },
-                        ],
-                        exportedProperties: ['someConstant'],
-                        exportedKeySets: ['someKeySet'],
-                        raw:
-                            'Object.assign(module.exports, {\n    identifiedAuthenticator: someConstructor(),\n    someConstant,\n    ...someKeySet,\n});\n',
-                    },
-                    inline: [],
-                });
+            expect(requirements).to.deep.equal({
+                global: {
+                    assignments: [
+                        {
+                            key: 'identifiedAuthenticator',
+                            value: 'someConstructor()',
+                        },
+                    ],
+                    exportedProperties: ['someConstant'],
+                    exportedKeySets: ['someKeySet'],
+                    raw:
+                        'Object.assign(module.exports, {\n    identifiedAuthenticator: someConstructor(),\n    someConstant,\n    ...someKeySet,\n});\n',
+                },
+                inline: [],
             });
+        });
 
-            it('should parse hybrid inline instructions having an ellipsis', () => {
-                const fileContent = `
+        it('should parse hybrid inline instructions having an ellipsis', () => {
+            const fileContent = `
 Object.assign(module.exports,
     lib,
     questions, {
@@ -409,53 +473,53 @@ Object.assign(module.exports,
 );
 `;
 
-                const requirements = getExports(fileContent, true);
+            const requirements = getExports(fileContent, true);
 
-                expect(requirements).to.deep.equal({
-                    global: {
-                        assignments: [
-                            {
-                                key: 'name',
-                                value: '"value"',
-                            },
-                        ],
-                        exportedKeySets: ['lib', 'questions'],
-                        exportedProperties: ['exportedConstant'],
-                        raw:
-                            'Object.assign(module.exports,\n    lib,\n    questions, {\n        name: "value",\n        exportedConstant,\n    }   \n);\n',
-                    },
-                    inline: [],
-                });
+            expect(requirements).to.deep.equal({
+                global: {
+                    assignments: [
+                        {
+                            key: 'name',
+                            value: '"value"',
+                        },
+                    ],
+                    exportedKeySets: ['lib', 'questions'],
+                    exportedProperties: ['exportedConstant'],
+                    raw:
+                        'Object.assign(module.exports,\n    lib,\n    questions, {\n        name: "value",\n        exportedConstant,\n    }   \n);\n',
+                },
+                inline: [],
             });
+        });
 
-            it('should parse hybrid inline instructions + keys with inline comments', () => {
-                const fileContent = `
+        it('should parse hybrid inline instructions + keys with inline comments', () => {
+            const fileContent = `
 Object.assign(module.exports, {
     identifiedAuthenticator: someConstructor(), // Some comment 
     someConstant                                // comment
 });
 `;
 
-                const requirements = getExports(fileContent, true);
+            const requirements = getExports(fileContent, true);
 
-                expect(requirements).to.deep.equal({
-                    global: {
-                        assignments: [
-                            {
-                                key: 'identifiedAuthenticator',
-                                value: 'someConstructor()',
-                            },
-                        ],
-                        exportedProperties: ['someConstant'],
-                        raw:
-                            'Object.assign(module.exports, {\n    identifiedAuthenticator: someConstructor(), // Some comment \n    someConstant                                // comment\n});\n',
-                    },
-                    inline: [],
-                });
+            expect(requirements).to.deep.equal({
+                global: {
+                    assignments: [
+                        {
+                            key: 'identifiedAuthenticator',
+                            value: 'someConstructor()',
+                        },
+                    ],
+                    exportedProperties: ['someConstant'],
+                    raw:
+                        'Object.assign(module.exports, {\n    identifiedAuthenticator: someConstructor(), // Some comment \n    someConstant                                // comment\n});\n',
+                },
+                inline: [],
             });
+        });
 
-            it('should parse various key declaration', () => {
-                const fileContent = `
+        it('should parse various key declaration', () => {
+            const fileContent = `
 Object.assign(module.exports, {
     call: someConstructor(),
     str: "hello",
@@ -466,26 +530,26 @@ Object.assign(module.exports, {
 });
 `;
 
-                const requirements = getExports(fileContent, true);
+            const requirements = getExports(fileContent, true);
 
-                expect(requirements).to.deep.equal({
-                    global: {
-                        assignments: [
-                            { key: 'call', value: 'someConstructor()' },
-                            { key: 'str', value: '"hello"' },
-                            { key: 'number', value: '42' },
-                            { key: 'inlineArray', value: '["...", "..."]' },
-                        ],
-                        exportedProperties: ['myFn', 'someConstant'],
-                        raw:
-                            'Object.assign(module.exports, {\n    call: someConstructor(),\n    str: "hello",\n    number: 42,\n    myFn,\n    inlineArray: ["...", "..."],\n    someConstant\n});\n',
-                    },
-                    inline: [],
-                });
+            expect(requirements).to.deep.equal({
+                global: {
+                    assignments: [
+                        { key: 'call', value: 'someConstructor()' },
+                        { key: 'str', value: '"hello"' },
+                        { key: 'number', value: '42' },
+                        { key: 'inlineArray', value: '["...", "..."]' },
+                    ],
+                    exportedProperties: ['myFn', 'someConstant'],
+                    raw:
+                        'Object.assign(module.exports, {\n    call: someConstructor(),\n    str: "hello",\n    number: 42,\n    myFn,\n    inlineArray: ["...", "..."],\n    someConstant\n});\n',
+                },
+                inline: [],
             });
+        });
 
-            it('should parse direct = object', () => {
-                const fileContent = `
+        it('should parse direct = object', () => {
+            const fileContent = `
 module.exports = {
     getA: async req => _db.aaa.find(await getter(req), ["name", "skills"]),
     getB: async req => _db.bbb.find(await getter(req), ["name", "skills"]),
@@ -493,32 +557,32 @@ module.exports = {
 };
 `;
 
-                const requirements = getExports(fileContent, true);
+            const requirements = getExports(fileContent, true);
 
-                expect(requirements).to.deep.equal({
-                    global: {
-                        assignments: [
-                            {
-                                key: 'getA',
-                                value:
-                                    'async req => _db.aaa.find(await getter(req), ["name", "skills"])',
-                            },
-                            {
-                                key: 'getB',
-                                value:
-                                    'async req => _db.bbb.find(await getter(req), ["name", "skills"])',
-                            },
-                        ],
-                        exportedProperties: ['someMethod'],
-                        raw:
-                            'module.exports = {\n    getA: async req => _db.aaa.find(await getter(req), ["name", "skills"]),\n    getB: async req => _db.bbb.find(await getter(req), ["name", "skills"]),\n    someMethod\n};\n',
-                    },
-                    inline: [],
-                });
+            expect(requirements).to.deep.equal({
+                global: {
+                    assignments: [
+                        {
+                            key: 'getA',
+                            value:
+                                'async req => _db.aaa.find(await getter(req), ["name", "skills"])',
+                        },
+                        {
+                            key: 'getB',
+                            value:
+                                'async req => _db.bbb.find(await getter(req), ["name", "skills"])',
+                        },
+                    ],
+                    exportedProperties: ['someMethod'],
+                    raw:
+                        'module.exports = {\n    getA: async req => _db.aaa.find(await getter(req), ["name", "skills"]),\n    getB: async req => _db.bbb.find(await getter(req), ["name", "skills"]),\n    someMethod\n};\n',
+                },
+                inline: [],
             });
+        });
 
-            it('should parse various key declaration with inline comments', () => {
-                const fileContent = `
+        it('should parse various key declaration with inline comments', () => {
+            const fileContent = `
 Object.assign(module.exports, {
     call: someConstructor(), // Comment
     str: "hello",//Comment
@@ -529,26 +593,26 @@ Object.assign(module.exports, {
 });
 `;
 
-                const requirements = getExports(fileContent, true);
+            const requirements = getExports(fileContent, true);
 
-                expect(requirements).to.deep.equal({
-                    global: {
-                        assignments: [
-                            { key: 'call', value: 'someConstructor()' },
-                            { key: 'str', value: '"hello"' },
-                            { key: 'number', value: '42' },
-                            { key: 'inlineArray', value: '["...", "..."]' },
-                        ],
-                        exportedProperties: ['myFn', 'someConstant'],
-                        raw:
-                            'Object.assign(module.exports, {\n    call: someConstructor(), // Comment\n    str: "hello",//Comment\n    number: 42,  // Comment\n    myFn,        // Comment\n    inlineArray: ["...", "..."],  // Comment\n    someConstant // Comment\n});\n',
-                    },
-                    inline: [],
-                });
+            expect(requirements).to.deep.equal({
+                global: {
+                    assignments: [
+                        { key: 'call', value: 'someConstructor()' },
+                        { key: 'str', value: '"hello"' },
+                        { key: 'number', value: '42' },
+                        { key: 'inlineArray', value: '["...", "..."]' },
+                    ],
+                    exportedProperties: ['myFn', 'someConstant'],
+                    raw:
+                        'Object.assign(module.exports, {\n    call: someConstructor(), // Comment\n    str: "hello",//Comment\n    number: 42,  // Comment\n    myFn,        // Comment\n    inlineArray: ["...", "..."],  // Comment\n    someConstant // Comment\n});\n',
+                },
+                inline: [],
             });
+        });
 
-            it('should parse multilines object/arrays declarations following tab size', () => {
-                const fileContent = `
+        it('should parse multilines object/arrays declarations following tab size', () => {
+            const fileContent = `
 Object.assign(module.exports, {
     singleLine: buildFirebaseAdapter({ firebaseNative }),
 
@@ -564,32 +628,31 @@ Object.assign(module.exports, {
 );
 `;
 
-                const requirements = getExports(fileContent, true);
+            const requirements = getExports(fileContent, true);
 
-                expect(requirements).to.deep.equal({
-                    global: {
-                        assignments: [
-                            {
-                                key: 'singleLine',
-                                value:
-                                    'buildFirebaseAdapter({ firebaseNative })',
-                            },
-                            {
-                                key: 'multilineFn',
-                                value:
-                                    'async function (){\n    // some code,\n    return {\n        someKey: "value",\n        global\n    }\n}',
-                            },
-                        ],
-                        exportedProperties: [],
-                        raw:
-                            'Object.assign(module.exports, {\n    singleLine: buildFirebaseAdapter({ firebaseNative }),\n\n    multilineFn: async function (){\n        // some code,\n        return {\n            someKey: "value",\n            global\n        }\n    },\n\n}\n);\n',
-                    },
-                    inline: [],
-                });
+            expect(requirements).to.deep.equal({
+                global: {
+                    assignments: [
+                        {
+                            key: 'singleLine',
+                            value: 'buildFirebaseAdapter({ firebaseNative })',
+                        },
+                        {
+                            key: 'multilineFn',
+                            value:
+                                'async function (){\n    // some code,\n    return {\n        someKey: "value",\n        global\n    }\n}',
+                        },
+                    ],
+                    exportedProperties: [],
+                    raw:
+                        'Object.assign(module.exports, {\n    singleLine: buildFirebaseAdapter({ firebaseNative }),\n\n    multilineFn: async function (){\n        // some code,\n        return {\n            someKey: "value",\n            global\n        }\n    },\n\n}\n);\n',
+                },
+                inline: [],
             });
+        });
 
-            it('should parse multilines function without alias', () => {
-                const fileContent = `
+        it('should parse multilines function without alias', () => {
+            const fileContent = `
 Object.assign(module.exports, {
     myInlineFunc () { return true },
     async myMultilineFunc(file) {
@@ -598,32 +661,31 @@ Object.assign(module.exports, {
 });
 `;
 
-                const requirements = getExports(fileContent, true);
+            const requirements = getExports(fileContent, true);
 
-                expect(requirements).to.deep.equal({
-                    global: {
-                        assignments: [
-                            {
-                                key: 'myInlineFunc',
-                                value:
-                                    'function myInlineFunc() { return true }',
-                            },
-                            {
-                                key: 'myMultilineFunc',
-                                value:
-                                    'async function myMultilineFunc(file) {\n   // code\n}',
-                            },
-                        ],
-                        exportedProperties: [],
-                        raw:
-                            'Object.assign(module.exports, {\n    myInlineFunc () { return true },\n    async myMultilineFunc(file) {\n       // code\n    }\n});\n',
-                    },
-                    inline: [],
-                });
+            expect(requirements).to.deep.equal({
+                global: {
+                    assignments: [
+                        {
+                            key: 'myInlineFunc',
+                            value: 'function myInlineFunc() { return true }',
+                        },
+                        {
+                            key: 'myMultilineFunc',
+                            value:
+                                'async function myMultilineFunc(file) {\n   // code\n}',
+                        },
+                    ],
+                    exportedProperties: [],
+                    raw:
+                        'Object.assign(module.exports, {\n    myInlineFunc () { return true },\n    async myMultilineFunc(file) {\n       // code\n    }\n});\n',
+                },
+                inline: [],
             });
+        });
 
-            it('should parse functions inline and multiline comments', () => {
-                const fileContent = `
+        it('should parse functions inline and multiline comments', () => {
+            const fileContent = `
 Object.assign(module.exports, { 
     // This comment is important
     async function test1 (
@@ -646,39 +708,39 @@ Object.assign(module.exports, {
 });
 `;
 
-                const requirements = getExports(fileContent, true);
+            const requirements = getExports(fileContent, true);
 
-                expect(requirements).to.deep.equal({
-                    global: {
-                        assignments: [
-                            {
-                                comment: '// This comment is important',
-                                key: 'test1',
-                                value: 'async function test1(\n    ...\n}',
-                            },
-                            {
-                                comment:
-                                    '/**\n * This is ESDoc\n * @params {function} callback\n * @return something\n */',
-                                key: 'send',
-                                value:
-                                    'µ.test2(async function (opts) {\n    ...\n})',
-                            },
-                            {
-                                comment: '/**\n     * weird indent\n     */',
-                                key: 'value',
-                                value: '55',
-                            },
-                        ],
-                        exportedProperties: [],
-                        raw:
-                            'Object.assign(module.exports, { \n    // This comment is important\n    async function test1 (\n        ...\n    },\n\n    /**\n     * This is ESDoc\n     * @params {function} callback\n     * @return something\n     */\n    send: µ.test2(async function (opts) {\n        ...\n    }),\n\n    /**\n         * weird indent\n         */\n    value: 55,\n});\n',
-                    },
-                    inline: [],
-                });
+            expect(requirements).to.deep.equal({
+                global: {
+                    assignments: [
+                        {
+                            comment: '// This comment is important',
+                            key: 'test1',
+                            value: 'async function test1(\n    ...\n}',
+                        },
+                        {
+                            comment:
+                                '/**\n * This is ESDoc\n * @params {function} callback\n * @return something\n */',
+                            key: 'send',
+                            value:
+                                'µ.test2(async function (opts) {\n    ...\n})',
+                        },
+                        {
+                            comment: '/**\n     * weird indent\n     */',
+                            key: 'value',
+                            value: '55',
+                        },
+                    ],
+                    exportedProperties: [],
+                    raw:
+                        'Object.assign(module.exports, { \n    // This comment is important\n    async function test1 (\n        ...\n    },\n\n    /**\n     * This is ESDoc\n     * @params {function} callback\n     * @return something\n     */\n    send: µ.test2(async function (opts) {\n        ...\n    }),\n\n    /**\n         * weird indent\n         */\n    value: 55,\n});\n',
+                },
+                inline: [],
             });
+        });
 
-            it('should parse multiline array definition', () => {
-                const fileContent = `
+        it('should parse multiline array definition', () => {
+            const fileContent = `
 Object.assign(module.exports, { 
     definitions: µ.containsTester([
         "aa",
@@ -691,32 +753,32 @@ Object.assign(module.exports, {
 });
 `;
 
-                const requirements = getExports(fileContent, true);
+            const requirements = getExports(fileContent, true);
 
-                expect(requirements).to.deep.equal({
-                    global: {
-                        assignments: [
-                            {
-                                key: 'definitions',
-                                value:
-                                    'µ.containsTester([\n    "aa",\n    "bb",\n])',
-                            },
-                            {
-                                key: 'tool',
-                                value: 'function (lang) {\n    return lang;\n}',
-                            },
-                        ],
-                        exportedProperties: [],
-                        raw:
-                            'Object.assign(module.exports, { \n    definitions: µ.containsTester([\n        "aa",\n        "bb",\n    ]),\n\n    tool: function (lang) {\n        return lang;\n    },\n});\n',
-                    },
-                    inline: [],
-                });
+            expect(requirements).to.deep.equal({
+                global: {
+                    assignments: [
+                        {
+                            key: 'definitions',
+                            value:
+                                'µ.containsTester([\n    "aa",\n    "bb",\n])',
+                        },
+                        {
+                            key: 'tool',
+                            value: 'function (lang) {\n    return lang;\n}',
+                        },
+                    ],
+                    exportedProperties: [],
+                    raw:
+                        'Object.assign(module.exports, { \n    definitions: µ.containsTester([\n        "aa",\n        "bb",\n    ]),\n\n    tool: function (lang) {\n        return lang;\n    },\n});\n',
+                },
+                inline: [],
             });
+        });
 
-            it('should warn when there are "this.relative" uses', () => {
-                const loggerWarnSpy = sandbox.stub(console, 'warn');
-                const fileContent = `
+        it('should warn when there are "this.relative" uses', () => {
+            const loggerWarnSpy = sandbox.stub(console, 'warn');
+            const fileContent = `
 Object.assign(module.exports, {
     rand: () => return Math.random(), 
     func: function (lang) {
@@ -725,41 +787,41 @@ Object.assign(module.exports, {
 });
 `;
 
-                const requirements = getExports(fileContent, true);
+            const requirements = getExports(fileContent, true);
 
-                expect(requirements).to.deep.equal({
-                    global: {
-                        assignments: [
-                            {
-                                key: 'rand',
-                                value: '() => return Math.random()',
-                            },
-                            {
-                                key: 'func',
-                                value:
-                                    'function (lang) {\n    return this.rand() * 10;\n}',
-                            },
-                        ],
-                        exportedProperties: [],
-                        raw:
-                            'Object.assign(module.exports, {\n    rand: () => return Math.random(), \n    func: function (lang) {\n        return this.rand() * 10;\n    },\n});\n',
-                    },
-                    inline: [],
-                });
+            expect(requirements).to.deep.equal({
+                global: {
+                    assignments: [
+                        {
+                            key: 'rand',
+                            value: '() => return Math.random()',
+                        },
+                        {
+                            key: 'func',
+                            value:
+                                'function (lang) {\n    return this.rand() * 10;\n}',
+                        },
+                    ],
+                    exportedProperties: [],
+                    raw:
+                        'Object.assign(module.exports, {\n    rand: () => return Math.random(), \n    func: function (lang) {\n        return this.rand() * 10;\n    },\n});\n',
+                },
+                inline: [],
+            });
 
-                expect(loggerWarnSpy).to.be.calledOnceWithExactly(
-                    `👀 beware of "this." usage in export "func"
+            expect(loggerWarnSpy).to.be.calledOnceWithExactly(
+                `👀 beware of "this." usage in export "func"
 function (lang) {
     return this.rand() * 10;
 },`,
-                );
-            });
+            );
         });
+    });
 
-        describe('non-supported exports', () => {
-            it('should not take advanced exports when experimental mode is disabled', () => {
-                const loggerWarnSpy = sandbox.stub(console, 'warn');
-                const fileContent = `
+    describe('non-supported exports', () => {
+        it('should not take advanced exports when experimental mode is disabled', () => {
+            const loggerWarnSpy = sandbox.stub(console, 'warn');
+            const fileContent = `
 Object.assign(module.exports, {
     uExternalFields: [
         "categories",
@@ -768,26 +830,26 @@ Object.assign(module.exports, {
 });
 `;
 
-                const requirements = getExports(fileContent);
+            const requirements = getExports(fileContent);
 
-                expect(requirements).to.deep.equal({
-                    global: {},
-                    inline: [],
-                });
-                expect(loggerWarnSpy).to.be.calledOnceWithExactly(
-                    `⚠ module.exports contains direct declarations (try "experimental" mode)
+            expect(requirements).to.deep.equal({
+                global: {},
+                inline: [],
+            });
+            expect(loggerWarnSpy).to.be.calledOnceWithExactly(
+                `⚠ module.exports contains direct declarations (try "experimental" mode)
 
     uExternalFields: [
         "categories",
         "description",
     ]
 `,
-                );
-            });
+            );
+        });
 
-            it('should avoid global module.exports having function declared inside', () => {
-                const loggerWarnSpy = sandbox.stub(console, 'warn');
-                const fileContent = `
+        it('should avoid global module.exports having function declared inside', () => {
+            const loggerWarnSpy = sandbox.stub(console, 'warn');
+            const fileContent = `
 module.exports = {
     myFunction: function(){
         // This function should be moved at root scope
@@ -797,101 +859,43 @@ module.exports = {
 };
 `;
 
-                const requirements = getExports(fileContent);
+            const requirements = getExports(fileContent);
 
-                expect(requirements).to.deep.equal({
-                    global: {},
-                    inline: [],
-                });
-                expect(loggerWarnSpy).to.be.calledOnceWithExactly(
-                    `⚠ module.exports support with declaration inside is skipped (try "experimental" mode)
+            expect(requirements).to.deep.equal({
+                global: {},
+                inline: [],
+            });
+            expect(loggerWarnSpy).to.be.calledOnceWithExactly(
+                `⚠ module.exports support with declaration inside is skipped (try "experimental" mode)
 module.exports = {
     myFunction: function(){
         // This function should be moved at root scope
         // We will let the developer handle it
     }`,
-                );
-            });
+            );
+        });
 
-            it('should avoid global module.exports having function declared inside', () => {
-                const loggerWarnSpy = sandbox.stub(console, 'warn');
-                const fileContent = `
+        it('should avoid global module.exports having function declared inside', () => {
+            const loggerWarnSpy = sandbox.stub(console, 'warn');
+            const fileContent = `
     module.exports = {
         firebaseNative: buildFirebaseNative()
     };
 `;
 
-                const requirements = getExports(fileContent);
+            const requirements = getExports(fileContent);
 
-                expect(requirements).to.deep.equal({
-                    global: {},
-                    inline: [],
-                });
+            expect(requirements).to.deep.equal({
+                global: {},
+                inline: [],
+            });
 
-                expect(loggerWarnSpy).to.be.calledOnceWithExactly(
-                    `⚠ module.exports contains direct declarations (try "experimental" mode)
+            expect(loggerWarnSpy).to.be.calledOnceWithExactly(
+                `⚠ module.exports contains direct declarations (try "experimental" mode)
 
         firebaseNative: buildFirebaseNative()
     `,
-                );
-            });
-        });
-    });
-
-    describe('export partial assignment', () => {
-        it('should export an exported variables', () => {
-            const fileContent = `// ...
-module.exports.someVariable = { total: 30,};
-`;
-
-            const requirements = getExports(fileContent);
-
-            expect(requirements).to.deep.equal({
-                global: {},
-                inline: [
-                    {
-                        raw: 'module.exports.someVariable = ',
-                        rawFullLine:
-                            '\nmodule.exports.someVariable = { total: 30,};',
-                        property: 'someVariable',
-                    },
-                ],
-            });
-        });
-
-        it('should export multiples exported variables', () => {
-            const fileContent = `
-module.exports.someVariable = {
-    total: 30,
-};
-module.exports.CONSTANT="Hello";
-exports.OTHER_CONSTANT="test";
-
-console.log("Some use of " + module.exports.someVariable.total);
-`;
-
-            const requirements = getExports(fileContent);
-
-            expect(requirements).to.deep.equal({
-                global: {},
-                inline: [
-                    {
-                        raw: 'module.exports.someVariable = ',
-                        rawFullLine: '\nmodule.exports.someVariable = {',
-                        property: 'someVariable',
-                    },
-                    {
-                        raw: 'module.exports.CONSTANT=',
-                        rawFullLine: 'module.exports.CONSTANT="Hello";',
-                        property: 'CONSTANT',
-                    },
-                    {
-                        raw: 'exports.OTHER_CONSTANT=',
-                        rawFullLine: 'exports.OTHER_CONSTANT="test";',
-                        property: 'OTHER_CONSTANT',
-                    },
-                ],
-            });
+            );
         });
     });
 });
