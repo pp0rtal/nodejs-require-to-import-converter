@@ -1,5 +1,6 @@
 import { RequireInfo } from '../reader/requires';
-import {IMPORT_LAST_COMMA, IMPORT_QUOTE, REMOVE_JS_EXT} from '../config';
+import { IMPORT_LAST_COMMA, IMPORT_QUOTE, REMOVE_JS_EXT } from '../config';
+import { escapeRegExp } from '../../utils/regex';
 
 /**
  *
@@ -11,8 +12,11 @@ export function rewriteImports(
     requirements: RequireInfo[],
 ): string {
     requirements.forEach((requireConfig) => {
-        const importLine = generateImport(requireConfig);
-        if(!requireConfig.commaSeparated && /^\s+/.test(requireConfig.raw)){
+        const importLine = generateImport(fileContent, requireConfig);
+        if (
+            !requireConfig.commaSeparated &&
+            /^[ \t]+/.test(requireConfig.raw)
+        ) {
             console.warn(
                 `👀 replaced an import with tabulation, you should have a look\n${importLine}`,
             );
@@ -25,9 +29,10 @@ export function rewriteImports(
 
 /**
  * Generate "import aaa from bbb" line according requirement config
+ * @param fileContent
  * @param requirement
  */
-function generateImport(requirement: RequireInfo): string {
+function generateImport(fileContent: string, requirement: RequireInfo): string {
     const quote = IMPORT_QUOTE || requirement.quoteType;
     const isGlobalImport =
         requirement.imports.length === 1 && requirement.imports[0].key === '*';
@@ -38,6 +43,15 @@ function generateImport(requirement: RequireInfo): string {
 
     // format each param
     const importAssignments = requirement.imports.map((importConfig) => {
+        if (
+            importConfig.key === '*' &&
+            importConfig.alias &&
+            !requirement.hasDefault &&
+            containsClassUsage(fileContent, importConfig.alias)
+        ) {
+            requirement.hasDefault = true;
+        }
+
         if (importConfig.key === '*' && requirement.hasDefault) {
             return `${importConfig.alias}`;
         }
@@ -69,4 +83,9 @@ function generateImport(requirement: RequireInfo): string {
     }
 
     return `import ${importFormattedAssignment} from ${quote}${requirement.target}${quote};`;
+}
+
+function containsClassUsage(fileContent: string, alias: string): boolean {
+    return new RegExp(`new +${escapeRegExp(alias)} *\\(`).test(fileContent)
+        || new RegExp(` extends +${escapeRegExp(alias)} *`).test(fileContent);
 }

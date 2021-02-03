@@ -4,6 +4,8 @@ import * as sinonChai from 'sinon-chai';
 
 import { rewriteImports } from '../../../../src/processor/writer/imports';
 import { getRequires } from '../../../../src/processor/reader/requires';
+import {getExports} from "../../../../src/processor/reader/moduleExports";
+import {rewriteExports} from "../../../../src/processor/writer/exports";
 
 chai.use(sinonChai);
 const expect = chai.expect;
@@ -168,5 +170,37 @@ import {
     getToken,
 } from "./authenticator";
 `);
+    });
+
+    describe('Handle default exports', () => {
+        it('should import default when the resource is instantiated', () => {
+            const fileContent = `
+const DocumentTester = require("./DocumentTester");
+function buildReq() { return { library: new DocumentTester() }}
+`;
+            const requirements = getRequires(fileContent);
+
+            const fileUpdate = rewriteImports(fileContent, requirements);
+
+            expect(fileUpdate).to.deep.equal(`
+import DocumentTester from "./DocumentTester";
+function buildReq() { return { library: new DocumentTester() }}
+`);
+        });
+
+        it('should import default when the resource is used like a class', () => {
+            const fileContent = `
+const AbstractError = require("./AbstractError");
+class MyError extends AbstractError {}
+`;
+            const requirements = getRequires(fileContent);
+
+            const fileUpdate = rewriteImports(fileContent, requirements);
+
+            expect(fileUpdate).to.deep.equal(`
+import AbstractError from "./AbstractError";
+class MyError extends AbstractError {}
+`);
+        });
     });
 });
