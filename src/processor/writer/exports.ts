@@ -115,8 +115,15 @@ function replacePropertyDeclaration(
         options.isKeySet,
     );
 
+    // Filter where the variable is used in the code
     const countUsageRegex = new RegExp(`[^a-zA-Z\d_-]${escapeRegExp(assignment)}[^a-zA-Z\d_:-]`, 'g');
-    const shouldReImport = ([ ...content.matchAll(countUsageRegex)].length > 2);
+    const useOccurrences = [ ...content.matchAll(countUsageRegex)].map(regexMath => regexMath[0]);
+    const occurrenceDirectUsage = useOccurrences.filter((occurrence) => {
+        const lastChar = occurrence[occurrence.length - 1];
+        return (lastChar === '.' || lastChar === '(');
+    })
+
+    const shouldReImport = occurrenceDirectUsage.length > 0;
 
     // Already exported with another key
     if (rawPropertyImport === true) {

@@ -552,6 +552,29 @@ import {
             );
         });
 
+        it('should not export constant if import is not called', () => {
+            const loggerWarnSpy = sandbox.stub(console, 'warn');
+            const fileContent = `
+import {
+    usedAndExportedMethod
+} from './usedAndExportedMethod'
+
+Object.assign(module.exports, { usedAndExportedMethod });
+`;
+            const exports = getExports(fileContent, true);
+
+            const fileUpdate = rewriteExports(fileContent, exports);
+
+            expect(fileUpdate).to.deep.equal(
+                `
+export {
+    usedAndExportedMethod
+} from './usedAndExportedMethod'
+`,
+            );
+            expect(loggerWarnSpy).to.not.be.called;
+        });
+
         it('should warn if direct export is not found', () => {
             const loggerWarnSpy = sandbox.stub(console, 'warn');
             const fileContent = `
