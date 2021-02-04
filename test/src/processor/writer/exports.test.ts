@@ -211,6 +211,21 @@ export const config2 = { /* keys */ };
 export function lib(){}
 `);
         });
+
+        it('should not declare a constant with a redundant name', () => {
+            const fileContent = `
+const get = async (req) => {};
+_.extend(module.exports, {
+    get: get,
+});
+`;
+            const exports = getExports(fileContent);
+            const fileUpdate = rewriteExports(fileContent, exports);
+
+            expect(fileUpdate).to.deep.equal(`
+export const get = async (req) => {};
+`);
+        });
     });
 
     describe('inline exports - functions', () => {
@@ -225,7 +240,6 @@ module.exports.myArrow = () => {};
             expect(fileUpdate).to.deep.equal(`
 export const myArrow = () => {};
 `);
-
         });
 
         it('should exported named function', () => {
@@ -240,7 +254,6 @@ module.exports.myFunction = function () => {};
 export function myFunction () => {};
 `);
         });
-
 
         it('should rewrite named async function', () => {
             const fileContent = `
@@ -416,6 +429,30 @@ Object.assign(module.exports, integrationsInterface);
             expect(fileUpdate).to.deep.equal(`
 export * from "./integrationsInterface";
 `);
+        });
+
+        it('should export imported property assigned to a constant and warn', () => {
+            const loggerWarnSpy = sandbox.stub(console, 'warn');
+            const fileContent = `
+const { assertTrue } = require("./assertTrue");
+module.exports.assertFalse = !assertTrue;
+module.exports.assertTrue = assertTrue;
+`;
+            const exports = getExports(fileContent);
+            const requirements = getRequires(fileContent);
+
+            let fileUpdate = rewriteImports(fileContent, requirements);
+            fileUpdate = rewriteExports(fileUpdate, exports);
+
+            expect(fileUpdate).to.deep.equal(`
+import { assertTrue } from "./assertTrue";
+export { assertTrue } from "./assertTrue";
+export const assertFalse = !assertTrue;
+`);
+            expect(loggerWarnSpy).to.be.calledOnceWithExactly(
+                `👀 ️a property is used and exported, you should manually check
+assertTrue`,
+            );
         });
     });
 
