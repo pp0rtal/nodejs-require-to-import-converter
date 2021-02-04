@@ -107,77 +107,107 @@ function rewriteInlineExports(
     fileContent: string,
     inlineExports: ExportsInfo['inline'],
 ): string {
-    inlineExports
-        .sort(
-            (exportA, exportB) =>
-                exportB.property.length - exportA.property.length,
-        )
-        .forEach((inlineExport) => {
-            const parseFn = /(.*=\s*(?:async\s*)?)function([\s(])/.exec(
-                inlineExport.rawFullLine,
-            );
-            const parseArrow = /(.*=\s*)async(\s*\()/.exec(
-                inlineExport.rawFullLine,
-            );
+    const sortedExports = inlineExports.sort(
+        (exportA, exportB) => exportB.property.length - exportA.property.length,
+    );
 
-            if (parseFn !== null) {
-                fileContent = fileContent.replace(
-                    parseFn[0],
-                    `${parseFn[1]}function ${inlineExport.property}${parseFn[2]}`,
-                );
-                fileContent = fileContent.replace(inlineExport.raw, 'export ');
-            } else if (parseArrow !== null) {
-                fileContent = fileContent.replace(
-                    parseArrow[0],
-                    `${parseArrow[1]}async ${inlineExport.property}${parseArrow[2]}`,
-                );
-                fileContent = fileContent.replace(inlineExport.raw, 'export ');
-            } else {
-                const searchDefinedConst = new RegExp(
-                    `^(const|let|var)\\s+${escapeRegExp(
-                        inlineExport.property,
-                    )}\\s*[=;].*`,
-                    'gm',
-                );
-                const hasDefinedConst = searchDefinedConst.exec(fileContent);
-                const importedValue = findPropertyImport(fileContent, inlineExport.property);
+    // Replace declarations
+    sortedExports.forEach((inlineExport) => {
+        const fileWithFunctionReplacement = rewriteInlineFunctionDefinitions(
+            fileContent,
+            inlineExport,
+        );
+        if (fileWithFunctionReplacement) {
+            fileContent = fileWithFunctionReplacement;
+            return;
+        }
 
-                if (hasDefinedConst) {
-                    // Update original constant definition and drop the export statement
-                    fileContent = fileContent.replace(
-                        hasDefinedConst[0],
-                        `export ${hasDefinedConst[0]}`,
-                    );
-                    fileContent = fileContent.replace(
-                        new RegExp(`${escapeRegExp(inlineExport.raw)}.*\n`),
-                        '',
-                    );
-                } else if(typeof importedValue === 'string'){
-                    const reExport = importedValue.replace(/^import /, 'export ');
-                    fileContent = fileContent.replace(importedValue, `${importedValue}\n${reExport}`);
-                    fileContent = fileContent.replace(`${inlineExport.rawFullLine}\n`, '');
-                    console.warn(
-                        `👀 ️a property is used and exported, you should manually check\n${inlineExport.property}`,
-                    );
-                } else {
-                    // Update export statement
-                    const replacement = `export const ${inlineExport.property} = `;
-                    fileContent = fileContent.replace(
-                        inlineExport.raw,
-                        replacement,
-                    );
-                }
-            }
-            fileContent = fileContent.replace(
-                new RegExp(
-                    `module\\.exports\\.${escapeRegExp(inlineExport.property)}`,
-                    'g',
-                ),
+        const searchDefinedConst = new RegExp(
+            `^(const|let|var)\\s+${escapeRegExp(
                 inlineExport.property,
+            )}\\s*[=;].*`,
+            'gm',
+        );
+        const hasDefinedConst = searchDefinedConst.exec(fileContent);
+        const importedValue = findPropertyImport(
+            fileContent,
+            inlineExport.property,
+        );
+
+        if (hasDefinedConst) {
+            // Update original constant definition and drop the export statement
+            fileContent = fileContent.replace(
+                hasDefinedConst[0],
+                `export ${hasDefinedConst[0]}`,
             );
-        });
+            fileContent = fileContent.replace(
+                new RegExp(`${escapeRegExp(inlineExport.raw)}.*\n`),
+                '',
+            );
+        } else if (typeof importedValue === 'string') {
+            const reExport = importedValue.replace(/^import /, 'export ');
+            fileContent = fileContent.replace(
+                importedValue,
+                `${importedValue}\n${reExport}`,
+            );
+            fileContent = fileContent.replace(
+                `${inlineExport.rawFullLine}\n`,
+                '',
+            );
+            console.warn(
+                `👀 ️a property is used and exported, you should manually check\n${inlineExport.property}`,
+            );
+        } else {
+            // Update export statement
+            const replacement = `export const ${inlineExport.property} = `;
+            fileContent = fileContent.replace(inlineExport.raw, replacement);
+        }
+    });
+
+    // Replace usages
+    sortedExports.forEach((inlineExport) => {
+        fileContent = fileContent.replace(
+            new RegExp(
+                `module\\.exports\\.${escapeRegExp(inlineExport.property)}`,
+                'g',
+            ),
+            inlineExport.property,
+        );
+    });
 
     return fileContent;
+}
+
+/**
+ * Search for function exported declarations and replace them with direct name
+ * - `exports.fnName = function()` --- `export function fnName (){}`
+ * - `exports.fnName = async () => {}` --- `export async fnName () => {}`
+ */
+function rewriteInlineFunctionDefinitions(
+    fileContent: string,
+    inlineExport: ExportsInfo['inline'][0],
+): string | null {
+    const parseFn = /(.*=\s*(?:async\s*)?)function([\s(])/.exec(
+        inlineExport.rawFullLine,
+    );
+    const parseArrow = /(.*=\s*)async(\s*\()/.exec(inlineExport.rawFullLine);
+
+    if (parseFn !== null) {
+        fileContent = fileContent.replace(
+            parseFn[0],
+            `${parseFn[1]}function ${inlineExport.property}${parseFn[2]}`,
+        );
+        return fileContent.replace(inlineExport.raw, 'export ');
+    }
+    if (parseArrow !== null) {
+        fileContent = fileContent.replace(
+            parseArrow[0],
+            `${parseArrow[1]}async ${inlineExport.property}${parseArrow[2]}`,
+        );
+        return fileContent.replace(inlineExport.raw, 'export ');
+    }
+
+    return null;
 }
 
 /**
@@ -269,8 +299,8 @@ function findPropertyImport(
         isEllipsis
             ? `^import \\* as ${escapeRegExp(property)} from .*$`
             : `^import ([^;]*)?[\\s{,]${escapeRegExp(
-            property,
-            )}([,\\s}][^;]*)?from.*$`,
+                  property,
+              )}([,\\s}][^;]*)?from.*$`,
         'm',
     );
 
@@ -278,8 +308,8 @@ function findPropertyImport(
         isEllipsis
             ? `^export \\* as_ ${escapeRegExp(property)} from .*$`
             : `^export ([^;]*)?[\\s{,]${escapeRegExp(
-            property,
-            )}[,\\s}][^;]*?from.*$`,
+                  property,
+              )}[,\\s}][^;]*?from.*$`,
         'm',
     );
 
