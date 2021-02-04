@@ -531,6 +531,46 @@ export default function (data) {
             );
         });
 
+        it('should replace module.exports.variable usage', () => {
+            const loggerWarnSpy = sandbox.stub(console, 'warn');
+            const fileContent = `
+const value = 45;
+log(module.exports.value)
+Object.assign(module.exports, { value });`;
+            const exports = getExports(fileContent, true);
+
+            const fileUpdate = rewriteExports(fileContent, exports);
+
+            expect(fileUpdate).to.deep.equal(
+                `
+export const value = 45;
+log(value)
+`,
+            );
+            expect(loggerWarnSpy).to.not.be.called;
+        });
+
+        it('should replace module.exports.variable usage and warn if the usage is before the definition', () => {
+            const loggerWarnSpy = sandbox.stub(console, 'warn');
+            const fileContent = `
+setTimeout(() => log(module.exports.value), 50);
+const value = 45;
+Object.assign(module.exports, { value });`;
+            const exports = getExports(fileContent, true);
+
+            const fileUpdate = rewriteExports(fileContent, exports);
+
+            expect(fileUpdate).to.deep.equal(
+                `
+setTimeout(() => log(value), 50);
+export const value = 45;
+`,
+            );
+            expect(loggerWarnSpy).to.be.calledOnceWithExactly(
+                `⚠️an exported constant is used before its definition: "value"`,
+            );
+        });
+
         it.skip('should export named function', () => {
             const fileContent = `
 const get = async (req) => {};

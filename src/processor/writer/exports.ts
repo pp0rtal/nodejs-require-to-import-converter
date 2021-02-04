@@ -166,16 +166,27 @@ function rewriteInlineExports(
 
     // Replace usages
     sortedExports.forEach((inlineExport) => {
-        fileContent = fileContent.replace(
-            new RegExp(
-                `module\\.exports\\.${escapeRegExp(inlineExport.property)}`,
-                'g',
-            ),
-            inlineExport.property,
-        );
+        fileContent = deleteExportsUsage(fileContent, inlineExport.property);
     });
 
     return fileContent;
+}
+
+function deleteExportsUsage(
+    fileContent: string,
+    property: string,
+    exportDefinition: number = -1,
+) {
+    const usagePosition = fileContent.indexOf(`exports.${property}`);
+    if(exportDefinition !== -1 && usagePosition !== -1 && usagePosition < exportDefinition){
+        console.warn(
+            `⚠️an exported constant is used before its definition: "${property}"`,
+        );
+    }
+    return fileContent.replace(
+        new RegExp(`(module\\.)?exports\\.${escapeRegExp(property)}`, 'g'),
+        property,
+    );
 }
 
 /**
@@ -265,10 +276,15 @@ function replacePropertyDeclaration(
     if (rawPropertyDeclaration) {
         // TODO => should export named function
         const defaultKey = options.isDefault ? 'default ' : '';
-        content = content.replace(
-            rawPropertyDeclaration,
-            `export ${defaultKey}${rawPropertyDeclaration}`,
-        );
+        const updatedDeclaration = `export ${defaultKey}${rawPropertyDeclaration}`;
+        content = content.replace(rawPropertyDeclaration, updatedDeclaration);
+
+        if (/^(const)|(var)|(let) /.test(rawPropertyDeclaration)) {
+            const insertPosition = content.indexOf(updatedDeclaration);
+            content = deleteExportsUsage(content, assignment, insertPosition);
+        } else {
+            content = deleteExportsUsage(content, assignment);
+        }
     } else if (rawPropertyImport) {
         let updatedImport: string;
         if (options.isKeySet) {
