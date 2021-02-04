@@ -435,6 +435,7 @@ export * from "./integrationsInterface";
             const loggerWarnSpy = sandbox.stub(console, 'warn');
             const fileContent = `
 const { assertTrue } = require("./assertTrue");
+const lib = require("./lib");
 module.exports.assertFalse = !assertTrue;
 module.exports.assertTrue = assertTrue;
 `;
@@ -446,12 +447,13 @@ module.exports.assertTrue = assertTrue;
 
             expect(fileUpdate).to.deep.equal(`
 import { assertTrue } from "./assertTrue";
+import * as lib from "./lib";
 export { assertTrue } from "./assertTrue";
 export const assertFalse = !assertTrue;
 `);
             expect(loggerWarnSpy).to.be.calledOnceWithExactly(
                 `👀 ️a property is used and exported, you should manually check
-assertTrue`,
+export { assertTrue } from "./assertTrue";`,
             );
         });
     });
@@ -675,7 +677,7 @@ export {
             const fileContent = `
 import {
     usedAndExportedMethod
-} from './package'
+} from './package';
 
 usedAndExportedMethod();
 
@@ -687,12 +689,12 @@ Object.assign(module.exports, { usedAndExportedMethod });
 
             expect(fileUpdate).to.deep.equal(
                 `
-export {
-    usedAndExportedMethod
-} from './package'
 import {
     usedAndExportedMethod
-} from './package'
+} from './package';
+export {
+    usedAndExportedMethod
+} from './package';
 
 usedAndExportedMethod();
 `,
@@ -701,10 +703,7 @@ usedAndExportedMethod();
                 `👀 ️a property is used and exported, you should manually check
 export {
     usedAndExportedMethod
-} from './package'
-import {
-    usedAndExportedMethod
-} from './package'`,
+} from './package';`,
             );
         });
 

@@ -145,17 +145,10 @@ function rewriteInlineExports(
                 '',
             );
         } else if (typeof importedValue === 'string') {
-            const reExport = importedValue.replace(/^import /, 'export ');
-            fileContent = fileContent.replace(
-                importedValue,
-                `${importedValue}\n${reExport}`,
-            );
+            fileContent = exportImportStatement(fileContent, importedValue);
             fileContent = fileContent.replace(
                 `${inlineExport.rawFullLine}\n`,
                 '',
-            );
-            console.warn(
-                `👀 ️a property is used and exported, you should manually check\n${inlineExport.property}`,
             );
         } else {
             // Update export statement
@@ -171,6 +164,21 @@ function rewriteInlineExports(
 
     return fileContent;
 }
+
+function exportImportStatement(fileContent: string, importedValue: string){
+    const reExport = importedValue.replace(/^import /, 'export ');
+    const lastImport = /\n(import [\w\W]*?;)(?!.*\nimport )/gm.exec(fileContent)
+    const insertAfter = (lastImport) ? lastImport[1] : importedValue;
+    console.warn(
+        `👀 ️a property is used and exported, you should manually check\n${reExport}`,
+    );
+
+    return fileContent.replace(
+        insertAfter,
+        `${insertAfter}\n${reExport}`,
+    );
+}
+
 
 function deleteExportsUsage(
     fileContent: string,
@@ -294,14 +302,13 @@ function replacePropertyDeclaration(
             );
         } else {
             updatedImport = rawPropertyImport.replace(/^import /, 'export ');
-            if (shouldReImport) {
-                updatedImport += `\n${rawPropertyImport}`;
-                console.warn(
-                    `👀 ️a property is used and exported, you should manually check\n${updatedImport}`,
-                );
-            }
         }
-        content = content.replace(rawPropertyImport, updatedImport);
+
+        if (!options.isKeySet && shouldReImport) {
+            content = exportImportStatement(content, rawPropertyImport);
+        } else {
+            content = content.replace(rawPropertyImport, updatedImport);
+        }
     }
 
     return content;
