@@ -59,6 +59,8 @@ export function getGlobalExports(
     // Search for exports={} and assign(exports, {...});
     const exportsAttributionRegex = /^ *(?:module\.)?exports\s*=([^{}=()\[\]]+)?\s*{([\s\S]*?)}\s*;?\n?/m;
     const exportsAssignAttributionRegex = /^ *(?:(?:(?:Object\.assign)|(?:_\.extend)|(?:_\.assign))\(\s*)(?:module\.)?exports\s*,([^{}=()\[\]]+)?\s*{([\s\S]*?)}\s*(,[^{}=()\[\]]+)?\s*\);?\n?/m;
+    // Similar by without [\s\S] and ending strictly by });
+    const exportsInlineAssignRegex = /^ *(?:(?:(?:Object\.assign)|(?:_\.extend)|(?:_\.assign))\(\s*)(?:module\.)?exports\s*,([^{}=()\[\]]+)?\s*{(.*)}\s*(,[^{}=()\[\]]+)?\s*\)\s*;\n/m;
 
     // Search for assign(exports, var, var, var);
     const exportsAssignedConstOnly = /^ *(?:(?:Object\.assign)|(?:_\.extend)|(?:_\.assign))\(\s*(?:module\.)?exports\s*,([^{}=()\[\]]+)\);?\n?/m;
@@ -78,11 +80,12 @@ export function getGlobalExports(
     const parseAssignesConstOnly = exportsAssignedConstOnly.exec(content);
     const parseObjectEqual = exportsAttributionRegex.exec(content);
     const parseObjectEqualAssign = exportsAssignAttributionRegex.exec(content);
+    const parseObjectEqualInlineAssign = exportsInlineAssignRegex.exec(content);
     const parseObjectEqualExp = exportsAttributionRegexExperiment.exec(content);
     const parseObjectAssignExp = exportsAssignRegexExperiment.exec(content);
 
     const parseAssignExperiment = parseObjectAssignExp || parseObjectEqualExp;
-    const parseAssign = parseObjectEqualAssign || parseObjectEqual;
+    const parseAssign = parseObjectEqualInlineAssign || parseObjectEqualAssign || parseObjectEqual;
 
     // Case: Direct assignment with no properties module.exports=VAR
     const isMoreLikelyDirectEqual =

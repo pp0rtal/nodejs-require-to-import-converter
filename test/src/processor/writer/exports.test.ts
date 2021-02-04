@@ -519,7 +519,7 @@ export default function (data) {
         });
     });
 
-    describe('multiline exports (experimental)', () => {
+    describe('multiline exports', () => {
         it('should rewrite direct function call', () => {
             const fileContent = `Object.assign(module.exports, { identifiedAuthenticator: buildIdentifiedAuthenticator() });`;
             const exports = getExports(fileContent, true);
@@ -528,6 +528,22 @@ export default function (data) {
 
             expect(fileUpdate).to.deep.equal(
                 `export const identifiedAuthenticator = buildIdentifiedAuthenticator();\n`,
+            );
+        });
+
+        it.skip('should export named function', () => {
+            const fileContent = `
+const get = async (req) => {};
+_.extend(module.exports, { get: get });
+`;
+            const exports = getExports(fileContent, true);
+
+            const fileUpdate = rewriteExports(fileContent, exports);
+
+            expect(fileUpdate).to.deep.equal(
+                `
+export async get (req) => {};
+`,
             );
         });
 

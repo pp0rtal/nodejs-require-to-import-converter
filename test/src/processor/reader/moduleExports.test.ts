@@ -3,7 +3,6 @@ import * as sinon from 'sinon';
 import * as sinonChai from 'sinon-chai';
 
 import { getExports } from '../../../../src/processor/reader/moduleExports';
-import { rewriteExports } from '../../../../src/processor/writer/exports';
 
 chai.use(sinonChai);
 const expect = chai.expect;
@@ -429,6 +428,28 @@ Object.assign(module.exports, { identifiedAuthenticator: buildIdentifiedAuthenti
                     ],
                     raw:
                         'Object.assign(module.exports, { identifiedAuthenticator: buildIdentifiedAuthenticator() });\n',
+                },
+                inline: [],
+            });
+        });
+
+        it('should parse complex inline function definitions ending by });', () => {
+            const fileContent = `
+Object.assign(module.exports, { buildThing: (a, b) => ({ company: a, users: { $all: [b] } }) });
+`;
+
+            const requirements = getExports(fileContent, true);
+
+            expect(requirements).to.deep.equal({
+                global: {
+                    assignments: [
+                        {
+                            key: 'buildThing',
+                            value: '(a, b) => ({ company: a, users: { $all: [b] } })',
+                        },
+                    ],
+                    raw:
+                        'Object.assign(module.exports, { buildThing: (a, b) => ({ company: a, users: { $all: [b] } }) });\n',
                 },
                 inline: [],
             });

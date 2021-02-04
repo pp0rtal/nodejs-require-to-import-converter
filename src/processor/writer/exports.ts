@@ -263,6 +263,7 @@ function replacePropertyDeclaration(
     }
 
     if (rawPropertyDeclaration) {
+        // TODO => should export named function
         const defaultKey = options.isDefault ? 'default ' : '';
         content = content.replace(
             rawPropertyDeclaration,
