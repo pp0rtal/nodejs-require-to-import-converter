@@ -251,7 +251,7 @@ module.exports.myFunction = function () => {};
             const fileUpdate = rewriteExports(fileContent, exports);
 
             expect(fileUpdate).to.deep.equal(`
-export function myFunction () => {};
+export function myFunction () => {}
 `);
         });
 
@@ -277,7 +277,7 @@ exports.XXXX = async (user, clearPw) => {};
             const fileUpdate = rewriteExports(fileContent, exports);
 
             expect(fileUpdate).to.deep.equal(`
-export async XXXX (user, clearPw) => {};
+export async XXXX (user, clearPw) => {}
 `);
         });
 

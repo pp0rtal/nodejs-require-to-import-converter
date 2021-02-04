@@ -192,6 +192,13 @@ function rewriteInlineFunctionDefinitions(
     );
     const parseArrow = /(.*=\s*)async(\s*\()/.exec(inlineExport.rawFullLine);
 
+    // Last ; is becoming useless
+    if (parseFn || parseArrow) {
+        const rawFullLine = inlineExport.rawFullLine;
+        const strWithoutSemicolon = rawFullLine.replace(/;\s*$/m, '');
+        fileContent = fileContent.replace(rawFullLine, strWithoutSemicolon);
+    }
+
     if (parseFn !== null) {
         fileContent = fileContent.replace(
             parseFn[0],
