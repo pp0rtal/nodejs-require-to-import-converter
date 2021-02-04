@@ -360,7 +360,7 @@ function findPropertyDeclaration(
     property: string,
 ): string | null {
     const findFnRegex = new RegExp(
-        `^(async)? *function\\s+${escapeRegExp(property)}[\\s(]`,
+        `^(async)? *function\\s+${escapeRegExp(property)}[\\s(].*`,
         'm',
     );
     const fnDeclaration = findFnRegex.exec(fileContent);
@@ -369,7 +369,7 @@ function findPropertyDeclaration(
     }
 
     const findConstRegex = new RegExp(
-        `^(const|var|let)\\s${escapeRegExp(property)}[\\s=]`,
+        `^(const|var|let)\\s${escapeRegExp(property)}[\\s=].*`,
         'gm',
     );
     const constDeclaration = findConstRegex.exec(fileContent);
@@ -378,7 +378,7 @@ function findPropertyDeclaration(
     }
 
     const findClassRegex = new RegExp(
-        `^(class)\\s${escapeRegExp(property)}[\\s(]`,
+        `^(class)\\s${escapeRegExp(property)}[\\s(].*`,
         'gm',
     );
     const classDeclaration = findClassRegex.exec(fileContent);

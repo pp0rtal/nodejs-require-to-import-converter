@@ -708,6 +708,25 @@ import {
             );
         });
 
+        it('should export declared constant', () => {
+            const fileContent = `
+const someMethod = async (course) => {
+    const myArrow = _.every(medias, m => _canMediaBeOffline(m));
+};
+const myArrow = async (course) => {};
+Object.assign(module.exports, { myArrow });
+`;
+            const exports = getExports(fileContent);
+            const fileUpdate = rewriteExports(fileContent, exports);
+
+            expect(fileUpdate).to.deep.equal(`
+const someMethod = async (course) => {
+    const myArrow = _.every(medias, m => _canMediaBeOffline(m));
+};
+export const myArrow = async (course) => {};
+`);
+        });
+
         it('should not export constant if import is not called', () => {
             const loggerWarnSpy = sandbox.stub(console, 'warn');
             const fileContent = `
