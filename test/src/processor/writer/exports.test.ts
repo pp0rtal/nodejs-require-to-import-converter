@@ -573,22 +573,6 @@ export const value = 45;
             );
         });
 
-        it.skip('should export named function', () => {
-            const fileContent = `
-const get = async (req) => {};
-_.extend(module.exports, { get: get });
-`;
-            const exports = getExports(fileContent, true);
-
-            const fileUpdate = rewriteExports(fileContent, exports);
-
-            expect(fileUpdate).to.deep.equal(
-                `
-export async get (req) => {};
-`,
-            );
-        });
-
         it('should export constants with an alias', () => {
             const loggerWarnSpy = sandbox.stub(console, 'warn');
             const fileContent = `
@@ -849,7 +833,7 @@ export async function method2 () {
             );
         });
 
-        it('should export direct named functions', () => {
+        it('should export and reformat named functions and arrow functions', () => {
             const fileContent = `
 Object.assign(module.exports, { 
     singleLine({ param }){ /* code */ },
@@ -882,6 +866,33 @@ export function errorHandler(err, req, res, next) {
 }
 
 export function multilineFn3(){ 
+}
+`,
+            );
+        });
+
+        it('should export reformat and replace arrow functions by functions when enable', () => {
+            const fileContent = `
+Object.assign(module.exports, { 
+    addSeconds: (date, seconds) => {
+        return date + seconds;
+    },
+    generateKey: async ({value} = {value: (5 + 1)}) => {
+        await uuid.v4().generate();
+    },
+});
+`;
+            const exports = getExports(fileContent, true);
+
+            const fileUpdate = rewriteExports(fileContent, exports);
+
+            expect(fileUpdate).to.deep.equal(
+                `export function addSeconds(date, seconds) {
+    return date + seconds;
+}
+
+export async function generateKey({value} = {value: (5 + 1)}) {
+    await uuid.v4().generate();
 }
 `,
             );

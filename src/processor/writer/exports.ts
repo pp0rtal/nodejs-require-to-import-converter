@@ -165,20 +165,18 @@ function rewriteInlineExports(
     return fileContent;
 }
 
-function exportImportStatement(fileContent: string, importedValue: string){
+function exportImportStatement(fileContent: string, importedValue: string) {
     const reExport = importedValue.replace(/^import /, 'export ');
-    const lastImport = /\n(import [\w\W]*?;)(?!.*\nimport )/gm.exec(fileContent)
-    const insertAfter = (lastImport) ? lastImport[1] : importedValue;
+    const lastImport = /\n(import [\w\W]*?;)(?!.*\nimport )/gm.exec(
+        fileContent,
+    );
+    const insertAfter = lastImport ? lastImport[1] : importedValue;
     console.warn(
         `👀 ️a property is used and exported, you should manually check\n${reExport}`,
     );
 
-    return fileContent.replace(
-        insertAfter,
-        `${insertAfter}\n${reExport}`,
-    );
+    return fileContent.replace(insertAfter, `${insertAfter}\n${reExport}`);
 }
-
 
 function deleteExportsUsage(
     fileContent: string,
@@ -186,7 +184,11 @@ function deleteExportsUsage(
     exportDefinition: number = -1,
 ) {
     const usagePosition = fileContent.indexOf(`exports.${property}`);
-    if(exportDefinition !== -1 && usagePosition !== -1 && usagePosition < exportDefinition){
+    if (
+        exportDefinition !== -1 &&
+        usagePosition !== -1 &&
+        usagePosition < exportDefinition
+    ) {
         console.warn(
             `⚠️an exported constant is used before its definition: "${property}"`,
         );
@@ -282,7 +284,6 @@ function replacePropertyDeclaration(
     }
 
     if (rawPropertyDeclaration) {
-        // TODO => should export named function
         const defaultKey = options.isDefault ? 'default ' : '';
         const updatedDeclaration = `export ${defaultKey}${rawPropertyDeclaration}`;
         content = content.replace(rawPropertyDeclaration, updatedDeclaration);
@@ -396,32 +397,49 @@ function findPropertyDeclaration(
     return null;
 }
 
+/**
+ * Export global assigned properties.
+ * Functions / arrow functions will be transformed if possible
+ */
 function moveExportedAssignment(
     fileContent: string,
     rawExport: string = '',
     assignment: Assignment,
 ): string {
     const firstLine = assignment.value.split('\n')[0];
-    let toInsert: string;
+    let toExport: string;
 
     const protoComment = assignment.comment ? `\n${assignment.comment}` : '';
 
     // Case: named function
     if (firstLine.includes(` ${assignment.key}(`)) {
-        toInsert = `${protoComment}\nexport ${assignment.value}\n`;
+        toExport = `${assignment.value}\n`;
     } else {
-        const parseFunctionProto = /^([^(]*function)\s*(\([\s\S]*)/g.exec(
-            assignment.value,
-        );
-        if (parseFunctionProto) {
+        const regexFn = /^([^(]*function)\s*(\([\s\S]*)/g;
+        const regexArrow = /^(async\s+)?(\(.*\))\s*=>\s*{/;
+        const parseFn = regexFn.exec(assignment.value);
+        const parseArrow = regexArrow.exec(assignment.value);
+        const isSimpleArrow =
+            (assignment.value.match(/=>/g) || []).length === 1;
+
+        if (parseFn) {
             // Case: convert to myFunction()
-            toInsert = `${protoComment}\nexport ${parseFunctionProto[1]} ${assignment.key}${parseFunctionProto[2]}\n`;
+            toExport = `${parseFn[1]} ${assignment.key}${parseFn[2]}\n`;
+        } else if (parseArrow && isSimpleArrow) {
+            // Case: convert arrow to functions (global export only)
+            const [fnPrototype, asyncKey, params] = parseArrow;
+            const functionDefinition = assignment.value.replace(
+                fnPrototype,
+                `${asyncKey || ''}function ${assignment.key}${params} {`,
+            );
+            toExport = `${functionDefinition}`;
         } else {
             // Not a function
-            toInsert = `${protoComment}\nexport const ${assignment.key} = ${assignment.value};\n`;
+            toExport = `const ${assignment.key} = ${assignment.value};\n`;
         }
     }
+    toExport = `${protoComment}\nexport ${toExport}`;
 
-    fileContent = insertBeforeSearch(fileContent, rawExport, toInsert, true);
+    fileContent = insertBeforeSearch(fileContent, rawExport, toExport, true);
     return fileContent;
 }
