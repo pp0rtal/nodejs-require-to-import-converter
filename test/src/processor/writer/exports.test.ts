@@ -277,7 +277,28 @@ exports.XXXX = async (user, clearPw) => {};
             const fileUpdate = rewriteExports(fileContent, exports);
 
             expect(fileUpdate).to.deep.equal(`
-export async XXXX (user, clearPw) => {}
+export async function XXXX (user, clearPw) {}
+`);
+        });
+
+        it('should rewrite named arrow function ans drop the last ;', () => {
+            const fileContent = `
+exports._getLinkedGroupsAndMembers = async (groupIds) => {
+    // multiline
+};
+const someInlineFunction() => {
+};
+`;
+            const exports = getExports(fileContent);
+
+            const fileUpdate = rewriteExports(fileContent, exports);
+
+            expect(fileUpdate).to.deep.equal(`
+export async function _getLinkedGroupsAndMembers (groupIds) {
+    // multiline
+}
+const someInlineFunction() => {
+};
 `);
         });
 
@@ -821,14 +842,14 @@ exports.method2 = async function () {
 // Inline comment method1
 export async function method1 () {
     // code
-};
+}
 
 /**
  * Multiline comment 2
  */
 export async function method2 () {
     // code
-};
+}
 `,
             );
         });

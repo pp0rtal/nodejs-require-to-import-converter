@@ -211,13 +211,31 @@ function rewriteInlineFunctionDefinitions(
     const parseFn = /(.*=\s*(?:async\s*)?)function([\s(])/.exec(
         inlineExport.rawFullLine,
     );
-    const parseArrow = /(.*=\s*)async(\s*\()/.exec(inlineExport.rawFullLine);
+    const parseArrow = /(.*=\s*)async(\s*\(.*)=>\s*{/.exec(
+        inlineExport.rawFullLine,
+    );
 
     // Last ; is becoming useless
     if (parseFn || parseArrow) {
-        const rawFullLine = inlineExport.rawFullLine;
+        const rawFullLine = inlineExport.rawFullLine.trimStart();
         const strWithoutSemicolon = rawFullLine.replace(/;\s*$/m, '');
         fileContent = fileContent.replace(rawFullLine, strWithoutSemicolon);
+
+        // Try to remove the last block semicolon
+        if (
+            strWithoutSemicolon &&
+            rawFullLine === strWithoutSemicolon &&
+            rawFullLine.endsWith('{')
+        ) {
+            const blocDefRegex = new RegExp(
+                `(${escapeRegExp(rawFullLine)}[\\s\\S]*?\\n});?`,
+                'gm',
+            );
+            const matchBloc = blocDefRegex.exec(fileContent);
+            if (matchBloc) {
+                fileContent = fileContent.replace(matchBloc[0], matchBloc[1]);
+            }
+        }
     }
 
     if (parseFn !== null) {
@@ -230,7 +248,7 @@ function rewriteInlineFunctionDefinitions(
     if (parseArrow !== null) {
         fileContent = fileContent.replace(
             parseArrow[0],
-            `${parseArrow[1]}async ${inlineExport.property}${parseArrow[2]}`,
+            `${parseArrow[1]}async function ${inlineExport.property}${parseArrow[2]}{`,
         );
         return fileContent.replace(inlineExport.raw, 'export ');
     }
