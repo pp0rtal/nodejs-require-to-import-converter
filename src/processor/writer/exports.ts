@@ -208,10 +208,10 @@ function rewriteInlineFunctionDefinitions(
     fileContent: string,
     inlineExport: ExportsInfo['inline'][0],
 ): string | null {
-    const parseFn = /(.*=\s*(?:async\s*)?)function([\s(])/.exec(
+    const parseFn = /(.*=\s*(?:async\s*)?)function\s*([\s(])/.exec(
         inlineExport.rawFullLine,
     );
-    const parseArrow = /(.*=\s*)async(\s*\(.*)=>\s*{/.exec(
+    const parseArrow = /(.*=\s*)async\s*(\(.*)=>\s*{/.exec(
         inlineExport.rawFullLine,
     );
 

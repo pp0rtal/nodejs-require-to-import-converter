@@ -183,7 +183,7 @@ function(){
 
             expect(fileUpdate).to.deep.equal(`
 export const CONSTANT = "...";
-export function myFunction () => {}
+export function myFunction() => {}
 
 function(){
   // anything with CONSTANT
@@ -251,7 +251,7 @@ module.exports.myFunction = function () => {};
             const fileUpdate = rewriteExports(fileContent, exports);
 
             expect(fileUpdate).to.deep.equal(`
-export function myFunction () => {}
+export function myFunction() => {}
 `);
         });
 
@@ -277,7 +277,7 @@ exports.XXXX = async (user, clearPw) => {};
             const fileUpdate = rewriteExports(fileContent, exports);
 
             expect(fileUpdate).to.deep.equal(`
-export async function XXXX (user, clearPw) {}
+export async function XXXX(user, clearPw) {}
 `);
         });
 
@@ -294,7 +294,7 @@ const someInlineFunction() => {
             const fileUpdate = rewriteExports(fileContent, exports);
 
             expect(fileUpdate).to.deep.equal(`
-export async function _getLinkedGroupsAndMembers (groupIds) {
+export async function _getLinkedGroupsAndMembers(groupIds) {
     // multiline
 }
 const someInlineFunction() => {
@@ -840,14 +840,14 @@ exports.method2 = async function () {
             expect(fileUpdate).to.deep.equal(
                 `
 // Inline comment method1
-export async function method1 () {
+export async function method1() {
     // code
 }
 
 /**
  * Multiline comment 2
  */
-export async function method2 () {
+export async function method2() {
     // code
 }
 `,
