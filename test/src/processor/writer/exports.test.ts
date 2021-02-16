@@ -368,13 +368,13 @@ module.exports = { someMethod, someConstant, a};
             fileUpdate = rewriteExports(fileUpdate, exports);
 
             expect(fileUpdate).to.deep.equal(`
-import * as _ from "lodash";
+import _ from "lodash";
 export {
     someMethod,
     someConstant,
     a,
 } from "./myLib1";
-import * as $ from "jquery";
+import $ from "jquery";
 `);
         });
 

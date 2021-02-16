@@ -34,10 +34,12 @@ export function getRequires(content: string): RequireInfo[] {
 
             // Look at the , previous state to store commaSeparated
             if (parsedRequirement && previousImportCommaSeparated) {
-                previousImportCommaSeparated = parsedRequirement?.commaSeparated || false;
+                previousImportCommaSeparated =
+                    parsedRequirement?.commaSeparated || false;
                 parsedRequirement.commaSeparated = true;
             } else {
-                previousImportCommaSeparated = parsedRequirement?.commaSeparated || false;
+                previousImportCommaSeparated =
+                    parsedRequirement?.commaSeparated || false;
             }
 
             if (parsedRequirement !== null) {
@@ -76,7 +78,7 @@ function parseRequirementStatement(
         varType,
         attributesRaw,
         quoteType,
-        libPathRaw,
+        target,
         additionalPath,
         comma,
     ] = parse;
@@ -90,7 +92,7 @@ function parseRequirementStatement(
         }
 
         return {
-            target: libPathRaw,
+            target,
             raw,
             quoteType,
             commaSeparated: comma === ',',
@@ -152,13 +154,27 @@ function parseRequirementStatement(
         return !alias || alias === key ? { key } : { key, alias };
     });
 
+    // Consider external lib with a default export...
+    const isModuleImport =
+        !target.startsWith('.') &&
+        !target.startsWith('/') &&
+        !target.includes('@');
+    const hasDefault =
+        isModuleImport &&
+        parsedAttributes.length === 1 &&
+        parsedAttributes[0].key === '*';
+
     const output: RequireInfo = {
-        target: libPathRaw,
+        target,
         raw,
         commaSeparated: comma === ',',
         quoteType,
         imports: parsedAttributes,
     };
+
+    if (hasDefault) {
+        output.hasDefault = true;
+    }
 
     const searchIndentRegex = /\n(\s+)/m.exec(parse[0]);
     if (searchIndentRegex !== null) {

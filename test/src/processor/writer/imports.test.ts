@@ -4,8 +4,6 @@ import * as sinonChai from 'sinon-chai';
 
 import { rewriteImports } from '../../../../src/processor/writer/imports';
 import { getRequires } from '../../../../src/processor/reader/requires';
-import { getExports } from '../../../../src/processor/reader/moduleExports';
-import { rewriteExports } from '../../../../src/processor/writer/exports';
 
 chai.use(sinonChai);
 const expect = chai.expect;
@@ -33,7 +31,7 @@ describe('writer processor - imports', () => {
 
             const fileUpdate = rewriteImports(fileContent, requirements);
 
-            expect(fileUpdate).to.deep.equal("import * as _ from 'lodash';");
+            expect(fileUpdate).to.deep.equal("import _ from 'lodash';");
         });
 
         it('should rewrite basic import having default', () => {
@@ -60,8 +58,8 @@ function a (){
             const fileUpdate = rewriteImports(fileContent, requirements);
 
             expect(fileUpdate).to.deep.equal(`
-import * as _ from 'lodash';
-import * as sinon from "sinon";
+import _ from 'lodash';
+import sinon from "sinon";
 
 function a (){
   // some code
@@ -104,8 +102,8 @@ function setGlobalStubs() {
             const fileUpdate = rewriteImports(fileContent, requirements);
 
             expect(fileUpdate).to.deep.equal(`
-import * as $ from 'jquery';
-import * as _ from 'underscore';
+import $ from 'jquery';
+import _ from 'underscore';
 function setGlobalStubs() {
 import * as logger from "../logger";
 }
@@ -173,7 +171,7 @@ const {
             const fileUpdate = rewriteImports(fileContent, requirements);
 
             expect(fileUpdate).to.deep.equal(`
-import * as _ from 'lodash';
+import _ from 'lodash';
 import {
     validateSession,
     getToken,

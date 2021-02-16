@@ -37,7 +37,7 @@ describe('reader processor - require()', () => {
             expect(requirements).to.deep.equal([]);
             expect(loggerWarnSpy).to.be.calledOnceWithExactly(
                 '⚠️require has direct function call, you have to separate instructions\n' +
-                'const router = require("express").Router();',
+                    'const router = require("express").Router();',
             );
         });
 
@@ -53,7 +53,7 @@ describe('reader processor - require()', () => {
             expect(requirements).to.deep.equal([]);
             expect(loggerWarnSpy).to.be.calledOnceWithExactly(
                 '⚠️require has direct direct call, you have to separate instructions\n' +
-                '            require("fs").copyFileSync(',
+                    '            require("fs").copyFileSync(',
             );
         });
 
@@ -109,6 +109,7 @@ const createClock = require("sinon").clock.create;`;
 
             expect(requirements).to.deep.equal([
                 {
+                    hasDefault: true,
                     target: 'lodash',
                     quoteType: "'",
                     raw: "const _ = require('lodash');",
@@ -129,6 +130,7 @@ const createClock = require("sinon").clock.create;`;
 
             expect(requirements).to.deep.equal([
                 {
+                    hasDefault: true,
                     target: 'lodash',
                     quoteType: '"',
                     raw: 'let _ = require("lodash");',
@@ -172,9 +174,10 @@ const _ = require("underscore");`;
             expect(requirements).to.deep.equal([
                 {
                     commaSeparated: true,
+                    hasDefault: true,
                     target: 'graceful-fs',
-                    quoteType: "\"",
-                    raw: "var fs = require(\"graceful-fs\"),",
+                    quoteType: '"',
+                    raw: 'var fs = require("graceful-fs"),',
                     imports: [
                         {
                             key: '*',
@@ -183,10 +186,11 @@ const _ = require("underscore");`;
                     ],
                 },
                 {
+                    hasDefault: true,
                     commaSeparated: true,
                     target: 'xml2js',
-                    quoteType: "\"",
-                    raw: "    xml2js = require(\"xml2js\");",
+                    quoteType: '"',
+                    raw: '    xml2js = require("xml2js");',
                     imports: [
                         {
                             key: '*',
@@ -195,9 +199,10 @@ const _ = require("underscore");`;
                     ],
                 },
                 {
+                    hasDefault: true,
                     target: 'underscore',
-                    quoteType: "\"",
-                    raw: "const _ = require(\"underscore\");",
+                    quoteType: '"',
+                    raw: 'const _ = require("underscore");',
                     imports: [
                         {
                             key: '*',
@@ -223,6 +228,7 @@ const _ = require("underscore");`;
 
             expect(requirements).to.deep.equal([
                 {
+                    hasDefault: true,
                     target: 'lodash',
                     quoteType: "'",
                     raw: "const _ = require('lodash');",
@@ -389,6 +395,7 @@ function a (){
 
             expect(requirements).to.deep.equal([
                 {
+                    hasDefault: true,
                     target: 'lodash',
                     quoteType: "'",
                     raw: "const _ = require('lodash');",
@@ -400,6 +407,7 @@ function a (){
                     ],
                 },
                 {
+                    hasDefault: true,
                     target: 'sinon',
                     quoteType: '"',
                     raw: 'const sinon = require("sinon");',
@@ -427,6 +435,7 @@ const {
 
             expect(requirements).to.deep.equal([
                 {
+                    hasDefault: true,
                     target: 'lodash',
                     quoteType: '"',
                     raw: 'const _ = require("lodash");',
@@ -442,7 +451,7 @@ const {
                     quoteType: '"',
                     raw:
                         'const {\n    validateSession,\n    getToken,\n} = require("./authenticator");',
-                    indent: "    ",
+                    indent: '    ',
                     imports: [
                         {
                             key: 'validateSession',
