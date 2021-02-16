@@ -1,6 +1,7 @@
 import { Assignment, ExportsInfo } from '../reader/moduleExports';
 import { escapeRegExp } from 'tslint/lib/utils';
 import { dropBlockStr, insertBeforeSearch } from '../../utils/string';
+import logger from "../../utils/sessionLogger";
 
 /**
  *
@@ -92,7 +93,7 @@ function rewriteGlobalExport(
         content = dropBlockStr(content, globalExports.raw);
     } catch (err) {
         // May never happen
-        console.warn(`⚠️cannot find raw export\n${globalExports.raw}`);
+        logger.warn(`⚠️cannot find raw export\n${globalExports.raw}`);
     }
 
     return content;
@@ -171,7 +172,7 @@ function exportImportStatement(fileContent: string, importedValue: string) {
         fileContent,
     );
     const insertAfter = lastImport ? lastImport[1] : importedValue;
-    console.warn(
+    logger.warn(
         `👀 ️a property is used and exported, you should manually check\n${reExport}`,
     );
 
@@ -189,7 +190,7 @@ function deleteExportsUsage(
         usagePosition !== -1 &&
         usagePosition < exportDefinition
     ) {
-        console.warn(
+        logger.warn(
             `⚠️an exported constant is used before its definition: "${property}"`,
         );
     }
@@ -296,7 +297,7 @@ function replacePropertyDeclaration(
     const rawPropertyDeclaration = findPropertyDeclaration(content, assignment);
 
     if (rawPropertyDeclaration === null && rawPropertyImport === null) {
-        console.warn(
+        logger.warn(
             `👀 ️cannot find and export declaration of property "${assignment}"`,
         );
     }

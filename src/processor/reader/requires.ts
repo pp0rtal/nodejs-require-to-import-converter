@@ -1,4 +1,4 @@
-// Relative to require() parsing
+import logger from "../../utils/sessionLogger";
 
 export type RequireInfo = {
     target: string;
@@ -204,7 +204,7 @@ function parseAttribute(input: string): RequireInfo['imports'] | null {
 
     const innerDestructuringRaw = input.substring(1, input.length - 1).trim();
     if (innerDestructuringRaw.includes('{')) {
-        console.warn(
+        logger.warn(
             `⚠️require has deep object destructuring on left side, you have to use a new constant\n${input}`,
         );
         return null;

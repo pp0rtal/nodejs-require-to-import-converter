@@ -1,3 +1,5 @@
+import logger from "../../utils/sessionLogger";
+
 export type Assignment = {
     key: string;
     value: string;
@@ -137,14 +139,14 @@ export function getGlobalExports(
         isAdvancedExport && innerRaw.includes('\n') && /[[{]/.test(innerRaw);
 
     if (hasInnerScope && !allowExperimental) {
-        console.warn(
+        logger.warn(
             `⚠ module.exports support with declaration inside is skipped (try "experimental" mode)\n${rawOuterExport}`,
         );
         return exportedContent;
     }
 
     if (isAdvancedExport && !allowExperimental) {
-        console.warn(
+        logger.warn(
             `⚠ module.exports contains direct declarations (try "experimental" mode)\n${innerRaw}`,
         );
         return exportedContent;
@@ -152,7 +154,7 @@ export function getGlobalExports(
 
     // Experimental on multiline has to catch \n})?;
     if (isAdvancedMultilineExport && parseAssignExperiment === null) {
-        console.warn(
+        logger.warn(
             `⚠ module.exports experimental mode not able to find export content\n${innerRaw}`,
         );
         return exportedContent;
@@ -172,7 +174,7 @@ export function getGlobalExports(
                 exportedContent.assignments = assignments;
                 exportedContent.exportedProperties = exportedProperties;
             } catch (err) {
-                console.warn(
+                logger.warn(
                     `⚠ module.exports unable to parse multiline content (${err.message})\n${parseAssignExperiment[1]}`,
                 );
                 return exportedContent;
@@ -503,7 +505,7 @@ function parseInnerMultilineAdvancedExport(
 
     function flushAssignment() {
         if (blocBuffer.includes('this.')) {
-            console.warn(
+            logger.warn(
                 `👀 beware of "this." usage in export "${blockProperty}"\n${blocBuffer}`,
             );
         }

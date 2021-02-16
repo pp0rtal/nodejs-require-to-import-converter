@@ -2,6 +2,7 @@ import { RequireInfo } from '../reader/requires';
 import { IMPORT_LAST_COMMA, IMPORT_QUOTE, REMOVE_JS_EXT } from '../config';
 import { escapeRegExp } from '../../utils/regex';
 import DefaultUseHandler from '../../utils/DefaultUseHandler';
+import logger from "../../utils/sessionLogger";
 
 /**
  */
@@ -22,7 +23,7 @@ export function rewriteImports(
             !requireConfig.commaSeparated &&
             /^[ \t]+/.test(requireConfig.raw)
         ) {
-            console.warn(
+            logger.warn(
                 `👀 replaced an import with tabulation, you should have a look\n${importLine}`,
             );
         }

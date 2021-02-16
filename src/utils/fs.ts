@@ -1,3 +1,4 @@
+import * as path from 'path';
 // @ts-ignore
 import * as scanDirRecursive from 'scan-dir-recursive/relative';
 import * as Bluebird from 'bluebird';
@@ -24,7 +25,7 @@ export async function scanDir(
 
     return files
         .filter((file) => EXTENSION_FILTER.test(file))
-        .map((path) => `${dirPath}/${path}`);
+        .map((filePath) => path.join(dirPath, filePath));
 }
 
 /**

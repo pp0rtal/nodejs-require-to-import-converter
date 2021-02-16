@@ -10,10 +10,10 @@ describe('lib - fs', () => {
             const files = await scanDir(TEST_DIR);
 
             expect(files).to.deep.equal([
-                './test/fixtures/fakefs/index.js',
-                './test/fixtures/fakefs/lib/MyDefaultExport.js',
-                './test/fixtures/fakefs/lib/hello.js',
-                './test/fixtures/fakefs/useDefault.js',
+                'test/fixtures/fakefs/index.js',
+                'test/fixtures/fakefs/lib/MyDefaultExport.js',
+                'test/fixtures/fakefs/lib/hello.js',
+                'test/fixtures/fakefs/useDefault.js',
             ]);
         });
 
@@ -21,11 +21,11 @@ describe('lib - fs', () => {
             const files = await scanDir(TEST_DIR, []);
 
             expect(files).to.deep.equal([
-                './test/fixtures/fakefs/index.js',
-                './test/fixtures/fakefs/lib/MyDefaultExport.js',
-                './test/fixtures/fakefs/lib/hello.js',
-                './test/fixtures/fakefs/node_modules/fakepackage/test.js',
-                './test/fixtures/fakefs/useDefault.js',
+                'test/fixtures/fakefs/index.js',
+                'test/fixtures/fakefs/lib/MyDefaultExport.js',
+                'test/fixtures/fakefs/lib/hello.js',
+                'test/fixtures/fakefs/node_modules/fakepackage/test.js',
+                'test/fixtures/fakefs/useDefault.js',
             ]);
         });
     });
