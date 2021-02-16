@@ -6,7 +6,7 @@ import { promises as fs } from 'fs';
 const IGNORE_DEFAULT = ['**/node_modules/**', '**/.git/**'];
 const EXTENSION_FILTER = /\.(js)$/;
 
-type TypeFileWithContent = { [key: string]: string };
+export type TypeFileWithContent = { [key: string]: string };
 
 /**
  * List files having .js / .ts / .json extension
@@ -32,7 +32,7 @@ export async function scanDir(
  * @param files
  * @return Associative array path => file content
  */
-export async function loadFilesContent(files: string[]) {
+export async function loadFilesContent(files: string[]): Promise<TypeFileWithContent> {
     const output: TypeFileWithContent = {};
 
     await Bluebird.reduce(

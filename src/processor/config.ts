@@ -21,3 +21,10 @@ export const REFORMAT_EXPORTS_DIRECT_DEFINITION: boolean = true;
  * Will convert require("./myfile.js") to import "myfile" (no extension)
  */
 export const REMOVE_JS_EXT: boolean = true;
+
+/**
+ * Will use import { default as ClassName } from ...
+ * when the files has a direct export and
+ */
+export const IMPORT_DEFAULT_MODULE_INTEROP: boolean = true;
+

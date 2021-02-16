@@ -1,18 +1,23 @@
 import { RequireInfo } from '../reader/requires';
 import { IMPORT_LAST_COMMA, IMPORT_QUOTE, REMOVE_JS_EXT } from '../config';
 import { escapeRegExp } from '../../utils/regex';
+import DefaultUseHandler from '../../utils/DefaultUseHandler';
 
 /**
- *
- * @param fileContent
- * @param requirements
  */
 export function rewriteImports(
     fileContent: string,
     requirements: RequireInfo[],
+    filePath: string | null = null,
+    defaultUseHandler: DefaultUseHandler | null = null,
 ): string {
     requirements.forEach((requireConfig) => {
-        const importLine = generateImport(fileContent, requireConfig);
+        const importLine = generateImport(
+            fileContent,
+            requireConfig,
+            filePath,
+            defaultUseHandler,
+        );
         if (
             !requireConfig.commaSeparated &&
             /^[ \t]+/.test(requireConfig.raw)
@@ -29,10 +34,13 @@ export function rewriteImports(
 
 /**
  * Generate "import aaa from bbb" line according requirement config
- * @param fileContent
- * @param requirement
  */
-function generateImport(fileContent: string, requirement: RequireInfo): string {
+function generateImport(
+    fileContent: string,
+    requirement: RequireInfo,
+    filePath: string | null = null,
+    defaultUseHandler: DefaultUseHandler | null = null,
+): string {
     const quote = IMPORT_QUOTE || requirement.quoteType;
     const isGlobalImport =
         requirement.imports.length === 1 && requirement.imports[0].key === '*';
@@ -42,7 +50,7 @@ function generateImport(fileContent: string, requirement: RequireInfo): string {
     }
 
     // format each param
-    const importAssignments = requirement.imports.map((importConfig) => {
+    let importAssignments = requirement.imports.map((importConfig) => {
         if (
             importConfig.key === '*' &&
             importConfig.alias &&
@@ -60,6 +68,19 @@ function generateImport(fileContent: string, requirement: RequireInfo): string {
         }
         return `${importConfig.key}`;
     });
+
+    // Use session path handler
+    if (
+        filePath &&
+        defaultUseHandler &&
+        requirement.imports.length === 1 &&
+        requirement.imports[0].key === '*' &&
+        requirement.imports[0].alias
+    ) {
+        if (defaultUseHandler.isDefaultImport(filePath, requirement.target)) {
+            importAssignments = [requirement.imports[0].alias];
+        }
+    }
 
     // Surround imported params, multi or single line
     let importFormattedAssignment: string;
@@ -86,6 +107,8 @@ function generateImport(fileContent: string, requirement: RequireInfo): string {
 }
 
 function containsClassUsage(fileContent: string, alias: string): boolean {
-    return new RegExp(`new +${escapeRegExp(alias)} *\\(`).test(fileContent)
-        || new RegExp(` extends +${escapeRegExp(alias)} *`).test(fileContent);
+    return (
+        new RegExp(`new +${escapeRegExp(alias)} *\\(`).test(fileContent) ||
+        new RegExp(` extends +${escapeRegExp(alias)} *`).test(fileContent)
+    );
 }

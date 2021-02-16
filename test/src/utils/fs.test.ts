@@ -11,7 +11,9 @@ describe('lib - fs', () => {
 
             expect(files).to.deep.equal([
                 './test/fixtures/fakefs/index.js',
+                './test/fixtures/fakefs/lib/MyDefaultExport.js',
                 './test/fixtures/fakefs/lib/hello.js',
+                './test/fixtures/fakefs/useDefault.js',
             ]);
         });
 
@@ -20,8 +22,10 @@ describe('lib - fs', () => {
 
             expect(files).to.deep.equal([
                 './test/fixtures/fakefs/index.js',
+                './test/fixtures/fakefs/lib/MyDefaultExport.js',
                 './test/fixtures/fakefs/lib/hello.js',
                 './test/fixtures/fakefs/node_modules/fakepackage/test.js',
+                './test/fixtures/fakefs/useDefault.js',
             ]);
         });
     });
@@ -35,7 +39,6 @@ describe('lib - fs', () => {
 
             expect(filesWithContent).to.deep.equal({
                 './test/fixtures/fakefs/index.js': `const helloLib = require('./lib/hello');
-
 helloLib.sayHello();
 `,
                 './test/fixtures/fakefs/lib/hello.js': `module.exports.sayHello = sayHello;
