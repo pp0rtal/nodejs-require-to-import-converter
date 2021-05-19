@@ -99,7 +99,6 @@ import { func as myFunc, myUtil } from "../file2.js";
 
      
    </td>
-   <td>
  </tr>
 </table>
 
@@ -132,7 +131,6 @@ export function myFunc(){}
 ```
 
    </td>
-   <td>
  </tr>
 </table>
 
@@ -162,7 +160,6 @@ export lib2 from './lib2/index.js';
 ```
 
    </td>
-   <td>
  </tr>
 </table>
 
