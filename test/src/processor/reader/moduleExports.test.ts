@@ -175,6 +175,38 @@ module.exports = {
             });
         });
 
+        describe("module.exports = Object.assign", () => {
+            it('should catch "module.export =" in inline Object.assign', () => {
+                const fileContent =
+                    '\nmodule.exports  = Object.assign(module.exports, {myFunction})\n\n\n';
+
+                const requirements = getExports(fileContent);
+
+                expect(requirements).to.deep.equal({
+                    global: {
+                        exportedProperties: ['myFunction'],
+                        raw: 'module.exports  = Object.assign(module.exports, {myFunction})\n',
+                    },
+                    inline: [],
+                });
+            });
+
+            it('should catch "module.export =" in multiline Object.assign', () => {
+                const fileContent =
+                    'module.exports= Object.assign(module.exports, {\nmyFunction\n})';
+
+                const requirements = getExports(fileContent);
+
+                expect(requirements).to.deep.equal({
+                    global: {
+                        exportedProperties: ['myFunction'],
+                        raw: 'module.exports= Object.assign(module.exports, {\nmyFunction\n})',
+                    },
+                    inline: [],
+                });
+            });
+        });
+
         it('should not take experimental export if disabled and warn', () => {
             const fileContent = `
 // Object.assign(module.exports, { ...lib1, ...lib2 });

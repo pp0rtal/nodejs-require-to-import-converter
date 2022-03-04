@@ -60,17 +60,17 @@ export function getGlobalExports(
 
     // Search for exports={} and assign(exports, {...});
     const exportsAttributionRegex = /^ *(?:module\.)?exports\s*=([^{}=()\[\]]+)?\s*{([\s\S]*?)}\s*;?\n?/m;
-    const exportsAssignAttributionRegex = /^ *(?:(?:(?:Object\.assign)|(?:_\.extend)|(?:_\.assign))\(\s*)(?:module\.)?exports\s*,([^{}=()\[\]]+)?\s*{([\s\S]*?)}\s*(,[^{}=()\[\]]+)?\s*\);?\n?/m;
+    const exportsAssignAttributionRegex = /^(?: *(?:module\.)?exports\s*=)? *(?:(?:(?:Object\.assign)|(?:_\.extend)|(?:_\.assign))\(\s*)(?:module\.)?exports\s*,([^{}=()\[\]]+)?\s*{([\s\S]*?)}\s*(,[^{}=()\[\]]+)?\s*\);?\n?/m;
     // Similar by without [\s\S] and ending strictly by });
-    const exportsInlineAssignRegex = /^ *(?:(?:(?:Object\.assign)|(?:_\.extend)|(?:_\.assign))\(\s*)(?:module\.)?exports\s*,([^{}=()\[\]]+)?\s*{(.*)}\s*(,[^{}=()\[\]]+)?\s*\)\s*;\n/m;
+    const exportsInlineAssignRegex = /^(?: *(?:module\.)?exports\s*=)? *(?:(?:(?:Object\.assign)|(?:_\.extend)|(?:_\.assign))\(\s*)(?:module\.)?exports\s*,([^{}=()\[\]]+)?\s*{(.*)}\s*(,[^{}=()\[\]]+)?\s*\)\s*;\n/m;
 
     // Search for assign(exports, var, var, var);
-    const exportsAssignedConstOnly = /^ *(?:(?:Object\.assign)|(?:_\.extend)|(?:_\.assign))\(\s*(?:module\.)?exports\s*,([^{}=()\[\]]+)\);?\n?/m;
+    const exportsAssignedConstOnly = /^(?: *(?:module\.)?exports\s*=)? *(?:(?:Object\.assign)|(?:_\.extend)|(?:_\.assign))\(\s*(?:module\.)?exports\s*,([^{}=()\[\]]+)\);?\n?/m;
 
     // Similar to above but with a little trick:
     // RELYING ON   \n})
     const exportsAttributionRegexExperiment = /^ *(?:module\.)?exports\s*=\s*{([\s\S]*?)\n};?\n?/m;
-    const exportsAssignRegexExperiment = /^ *(?:(?:(?:Object\.assign)|(?:_\.extend)|(?:_\.assign))\(\s*)(?:module\.)?exports\s*,\s*{([\s\S]*?)\n}\n?\);?\n?/m;
+    const exportsAssignRegexExperiment = /^(?: *(?:module\.)?exports\s*=)? *(?:(?:(?:Object\.assign)|(?:_\.extend)|(?:_\.assign))\(\s*)(?:module\.)?exports\s*,\s*{([\s\S]*?)\n}\n?\);?\n?/m;
 
     const exportMultilineDirectEqual = /^(?:module\.)?exports\s*=\s*([^\n]+{\n[\w\W]*\n}[^\n]*)/m;
     const exportDirectEqual = /^(?:module\.)?exports\s*=\s*([^\s;]+);?\n?/m;
