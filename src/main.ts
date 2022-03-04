@@ -50,7 +50,7 @@ async function confirmScan(path: string): Promise<void | never> {
 
 async function getParams(path: string): Promise<{ files: string[] } | never> {
     const prompt = inquirer.createPromptModule();
-    let ignore = 'node_modules .git dist eslintrc nyc.config.js';
+    let ignore = 'node_modules .git dist .eslintrc .eslintrc.js nyc.config.js';
     let doUpdate = false;
     let files: string[] = [];
     let refreshTree = true;
@@ -137,10 +137,14 @@ async function warnBeforeRun(): Promise<void | never> {
 }
 
 function buildFilter(ignoreStr: string): string[] {
-    return ignoreStr
+    const filters =  ignoreStr
         .split(' ')
         .filter((str) => str !== '')
-        .map((dir) => `**/${dir}/**`);
+
+        return [
+            ...filters.map((dir) => `**/${dir}/**`),
+            ...filters.map((dir) => `**/${dir}`)
+        ];
 }
 
 main();
