@@ -60,21 +60,29 @@ Add to you eslint config file
 ## Capacities
 ### Import support
 
+<table>
+ <tr>
+  <td>
+
 🕸 CommonJS version
 ```javascript
 // Global imports
-const _ = require('lodash'); // Libs having a "default" defined
-const sinon = require('sinon'); // Libs without "default"
-const { ObjectId } = require('mongodb'); // require with object destructuring
-const CustomNameRouter = require('express').Router; // Partial import
+const _ = require('lodash');
+const sinon = require('sinon');
+const { ObjectId } = require('mongodb');
+const CustomNameRouter = require('express').Router;
 
 // Local imports
 const someFile = require(`../path/file`);
-const myFunc = require(`../path/other/file`).func;
-const { myUtil } = require(`../path/other/file`);
+const myFunc = require(`../file2`).func;
+const { myUtil } = require(`../file2`);
 
 ```
 
+   </td>
+   <td>
+
+   
 ✨ ES6 import version
 ```javascript
 // Global imports
@@ -85,23 +93,36 @@ import { Router as CustomNameRouter } from 'express';
 
 // Local imports
 import * as someFile from "../path/file.js";
-import { func as myFunc, myUtil } from "../path/other/file.js";
+import { func as myFunc, myUtil } from "../file2.js";
 
 ```
 
+     
+   </td>
+ </tr>
+</table>
 
 ### Export support
 
 #### Exports
+
+
+<table>
+ <tr>
+  <td>
+
 🕸 CommonJS version
 ```javascript
 const MYCONST = 89;
 module.exports = { myFunc, MYCONST };
-Object.assign(module.exports, { myFunc, MYCONST }); // Sometimes used to bypass inter-dependency
+Object.assign(module.exports, { myFunc, MYCONST });
 module.exports.someConst = {};
 function myFunc(){}
 ```
 
+   </td>
+   <td>
+    
 ✨ ES6 import version
 ```javascript
 export const MYCONST = 89;
@@ -109,9 +130,18 @@ export const someConst = {};
 export function myFunc(){}
 ```
 
+   </td>
+ </tr>
+</table>
+
 
 #### Handle index.js interface import / export
 It's usual with Nodejs to have `index.js` files export like this:
+
+
+<table>
+ <tr>
+  <td>
 
 🕸 CommonJS version
 ```javascript
@@ -120,11 +150,18 @@ const lib2 = require('./lib2/');
 module.exports = { ...myLib, lib2, }
 ```
 
+   </td>
+   <td>
+
 ✨ ES6 import version
 ```javascript
 export * from './myLib.js';
 export lib2 from './lib2/index.js';
 ```
+
+   </td>
+ </tr>
+</table>
 
 
 
